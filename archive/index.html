@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>clearboxcompliance.pro</title>
+
+  <!--
+    Excerpt from ClearBox Compliance Brand Guide:
+    "We make the invisible visible - from source code to regulatory submission, from algorithm logic to market impact."
+    "The ClearBox Compliance color system is built on a foundation of transparency, precision, and clinical authority." 
+  -->
+
+  <!-- Google Fonts: Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --precision-midnight: #FFFFFF;
+      --regulatory-slate: #4A5568;
+      --glass-bg: rgba(255,255,255,0.15);
+      --glass-border: rgba(255,255,255,0.25);
+      --glass-shadow: 0 8px 32px rgba(13,27,42,0.15);
+    }
+
+    /* Reset & viewport */
+    html,body{
+      height:100%;
+      width:100%;
+      margin:0;
+      padding:0;
+      background:var(--precision-midnight);
+      font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      overflow:hidden;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+
+    /* Container fills viewport */
+    .stage{
+      position:relative;
+      width:100vw;
+      height:100vh;
+      overflow:hidden;
+      touch-action:none;
+      user-select:none;
+    }
+
+    /* Logo element */
+    #logo {
+      position:absolute;
+      width:220px; /* baseline width as requested */
+      height:auto;
+      will-change:transform;
+      transform: translate3d(0,0,0);
+      pointer-events:none;
+      -webkit-user-drag: none;
+      user-drag: none;
+      image-rendering: optimizeQuality;
+      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.35));
+    }
+
+    /* Glassmorphism pitch box pinned bottom-center */
+    .pitch {
+      position: absolute;
+      left: 50%;
+      bottom: 36px;
+      transform: translateX(-50%);
+      background: var(--glass-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--glass-shadow);
+      padding: 16px 24px;
+      border-radius: 8px;
+      max-width: min(880px, calc(100% - 48px));
+      box-sizing: border-box;
+    }
+
+    .pitch p{
+      margin:0;
+      color: var(--regulatory-slate);
+      font-weight:400;
+      font-size:16px;
+      line-height:1.6;
+      letter-spacing:0;
+      text-align:center;
+      -webkit-font-smoothing:antialiased;
+    }
+
+    /* Small accessibility helper: reduce motion preference */
+    @media (prefers-reduced-motion: reduce) {
+      #logo { transition: none !important; }
+    }
+
+    /* Ensure image never exceeds viewport on very small screens */
+    @media (max-width: 260px) {
+      #logo { width: 160px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="stage" id="stage" aria-hidden="false">
+    <img id="logo" src="logo.png" alt="ClearBox Compliance logo" draggable="false" />
+    <div class="pitch" role="status" aria-live="polite">
+      <p>We are currently clearing out a lean framework of the boxes. Thank you for your patience.</p>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const logo = document.getElementById('logo');
+      const stage = document.getElementById('stage');
+
+      // Physics parameters
+      let vx = 180; // pixels per second (baseline moderate speed)
+      let vy = 120; // pixels per second
+      const varianceOnBounce = 0.06; // up to ±6% micro-adjustment
+      const minSpeed = 60; // avoid extremely slow speeds
+      const maxSpeed = 600; // cap top speed
+
+      // Position (top-left of the image)
+      let pos = { x: 0, y: 0 };
+      let lastTime = null;
+      let logoW = 220, logoH = 100; // will be updated after image loads
+
+      // Ensure logo dimensions are known
+      function updateLogoSize() {
+        logoW = logo.offsetWidth || 220;
+        logoH = logo.offsetHeight || (logoW * 0.45);
+      }
+
+      // Place logo at a good initial random position and direction
+      function initPosition() {
+        updateLogoSize();
+        const stageRect = stage.getBoundingClientRect();
+        // Random start within safe margins
+        pos.x = Math.max(8, Math.random() * (stageRect.width - logoW - 16));
+        pos.y = Math.max(8, Math.random() * (stageRect.height - logoH - 16));
+        // Randomize initial direction slightly
+        const angle = (Math.random() * Math.PI * 2);
+        const speed = Math.sqrt(vx*vx + vy*vy);
+        vx = Math.cos(angle) * speed;
+        vy = Math.sin(angle) * speed;
+        // Apply transform immediately
+        setTransform();
+      }
+
+      function setTransform() {
+        // Use translate3d for GPU acceleration
+        logo.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0)`;
+      }
+
+      // Reflect velocity vector across normal when hitting a wall
+      function reflect(axis) {
+        if (axis === 'x') {
+          vx = -vx;
+        } else if (axis === 'y') {
+          vy = -vy;
+        }
+        // Apply tiny random variance to avoid periodic loops
+        const randFactorX = 1 + (Math.random() * varianceOnBounce * 2 - varianceOnBounce);
+        const randFactorY = 1 + (Math.random() * varianceOnBounce * 2 - varianceOnBounce);
+        vx *= randFactorX;
+        vy *= randFactorY;
+
+        // Clamp speeds to avoid extremes
+        const speed = Math.sqrt(vx*vx + vy*vy);
+        if (speed < minSpeed) {
+          const scale = minSpeed / Math.max(speed, 0.0001);
+          vx *= scale;
+          vy *= scale;
+        } else if (speed > maxSpeed) {
+          const scale = maxSpeed / speed;
+          vx *= scale;
+          vy *= scale;
+        }
+      }
+
+      // Main animation loop
+      function step(timestamp) {
+        if (!lastTime) lastTime = timestamp;
+        const dt = Math.min(40, timestamp - lastTime); // cap dt to avoid huge jumps (ms)
+        lastTime = timestamp;
+        const dtSec = dt / 1000;
+
+        // Update position
+        pos.x += vx * dtSec;
+        pos.y += vy * dtSec;
+
+        // Bounds check
+        const stageRect = stage.getBoundingClientRect();
+        const maxX = stageRect.width - logoW;
+        const maxY = stageRect.height - logoH;
+
+        let bounced = false;
+
+        if (pos.x <= 0) {
+          pos.x = 0;
+          reflect('x');
+          bounced = true;
+        } else if (pos.x >= maxX) {
+          pos.x = maxX;
+          reflect('x');
+          bounced = true;
+        }
+
+        if (pos.y <= 0) {
+          pos.y = 0;
+          reflect('y');
+          bounced = true;
+        } else if (pos.y >= maxY) {
+          pos.y = maxY;
+          reflect('y');
+          bounced = true;
+        }
+
+        // If bounce occurred, nudge position slightly inward to avoid sticking
+        if (bounced) {
+          pos.x = Math.min(Math.max(2, pos.x), Math.max(2, maxX - 2));
+          pos.y = Math.min(Math.max(2, pos.y), Math.max(2, maxY - 2));
+        }
+
+        setTransform();
+        // Continue loop
+        requestAnimationFrame(step);
+      }
+
+      // Handle window resize: keep logo inside viewport
+      function onResize() {
+        updateLogoSize();
+        const stageRect = stage.getBoundingClientRect();
+        const maxX = Math.max(0, stageRect.width - logoW);
+        const maxY = Math.max(0, stageRect.height - logoH);
+        if (pos.x > maxX) pos.x = maxX;
+        if (pos.y > maxY) pos.y = maxY;
+        setTransform();
+      }
+
+      // Prevent accidental dragging on mobile
+      function preventDefault(e) {
+        e.preventDefault();
+      }
+
+      // Initialize after image loads to get accurate dimensions
+      function startWhenReady() {
+        if (logo.complete && logo.naturalWidth !== 0) {
+          // Update width if CSS changed it
+          updateLogoSize();
+          // If CSS width differs from natural, keep CSS width as baseline
+          initPosition();
+          // Kick off animation
+          requestAnimationFrame(step);
+        } else {
+          // Wait for load
+          logo.addEventListener('load', function () {
+            updateLogoSize();
+            initPosition();
+            requestAnimationFrame(step);
+          }, { once: true });
+          // Fallback timeout in case load event doesn't fire
+          setTimeout(function () {
+            updateLogoSize();
+            initPosition();
+            requestAnimationFrame(step);
+          }, 600);
+        }
+      }
+
+      // Respect reduced-motion preference: if user prefers reduced motion, do a slow fade instead
+      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (reduceMotion) {
+        // Gentle slow pan using CSS transition as fallback
+        logo.style.transition = 'transform 8s linear';
+        // Place center
+        logo.style.left = '50%';
+        logo.style.top = '50%';
+        logo.style.transform = 'translate3d(-50%,-50%,0)';
+      } else {
+        // Normal animated behavior
+        startWhenReady();
+        // Event listeners
+        window.addEventListener('resize', onResize, { passive: true });
+        // Prevent touch dragging
+        stage.addEventListener('touchstart', preventDefault, { passive: false });
+        stage.addEventListener('touchmove', preventDefault, { passive: false });
+      }
+
+      // Accessibility: if user presses Escape, pause movement (useful for screenshots)
+      let paused = false;
+      function togglePause() {
+        paused = !paused;
+        if (paused) {
+          // freeze by zeroing velocities but keep stored values
+          logo.dataset._vx = vx;
+          logo.dataset._vy = vy;
+          vx = 0; vy = 0;
+        } else {
+          if (logo.dataset._vx) vx = parseFloat(logo.dataset._vx);
+          if (logo.dataset._vy) vy = parseFloat(logo.dataset._vy);
+          delete logo.dataset._vx;
+          delete logo.dataset._vy;
+        }
+      }
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') togglePause();
+      });
+
+      // Ensure logo is visible on high-DPI screens and initial layout
+      document.addEventListener('DOMContentLoaded', () => {
+        // Slight delay to allow fonts to load and layout to stabilize
+        setTimeout(() => {
+          updateLogoSize();
+          onResize();
+        }, 80);
+      });
+    })();
+  </script>
+</body>
+</html>

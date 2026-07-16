@@ -1,320 +1,1850 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>clearboxcompliance.pro</title>
-
-  <!--
-    Excerpt from ClearBox Compliance Brand Guide:
-    "We make the invisible visible - from source code to regulatory submission, from algorithm logic to market impact."
-    "The ClearBox Compliance color system is built on a foundation of transparency, precision, and clinical authority." 
-  -->
-
-  <!-- Google Fonts: Inter -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ClearBoxCompliance.pro - Class II Medical Device Regulatory Pathway Decision Tree</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            navy: { DEFAULT: '#0f2144', light: '#1a3a6b', dark: '#091529' },
+            teal: { DEFAULT: '#00b4d8', light: '#48cae4', dark: '#0096b7', soft: '#e0f7fa' },
+            gold: { DEFAULT: '#f4a261', light: '#f8c291', dark: '#e07628' },
+            slate: { 50: '#f4f6f8', 100: '#e8ecf0', 200: '#d1d9e0' },
+            hw: '#2563eb',
+            aiml: '#7c3aed',
+            samd: '#059669',
+            simd: '#ea580c',
+          },
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+          },
+        },
+      },
+    };
+  </script>
+  <script src="https://unpkg.com/lucide@latest" defer></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
-    :root{
-      --precision-midnight: #FFFFFF;
-      --regulatory-slate: #4A5568;
-      --glass-bg: rgba(255,255,255,0.15);
-      --glass-border: rgba(255,255,255,0.25);
-      --glass-shadow: 0 8px 32px rgba(13,27,42,0.15);
+    :root {
+      --navy: #0f2144;
+      --navy-light: #1a3a6b;
+      --teal: #00b4d8;
+      --teal-light: #48cae4;
+      --gold: #f4a261;
+      --bg: #ffffff;
+      --card-bg: #f4f6f8;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --hw-color: #2563eb;
+      --aiml-color: #7c3aed;
+      --samd-color: #059669;
+      --simd-color: #ea580c;
+      --transition-speed: 0.35s;
+      --radius: 12px;
+    }
+    .dark-mode {
+      --navy: #0f2144;
+      --navy-light: #1e3a5f;
+      --bg: #0b1120;
+      --card-bg: #111827;
+      --text: #e2e8f0;
+      --text-muted: #94a3b8;
+      --border: #1e293b;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      transition: background var(--transition-speed), color var(--transition-speed);
+      min-height: 100vh;
+    }
+    .dark-mode body, body.dark-mode { background: var(--bg); color: var(--text); }
+
+    /* Shimmer loading */
+    .shimmer { position: relative; overflow: hidden; }
+    .shimmer::after {
+      content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+      animation: shimmer 1.5s ease-in-out infinite;
+    }
+    @keyframes shimmer { 100% { left: 100%; } }
+
+    /* Fade/slide transitions */
+    .fade-enter { opacity: 0; transform: translateY(20px); }
+    .fade-active { opacity: 1; transform: translateY(0); transition: opacity 0.4s ease, transform 0.4s ease; }
+    .fade-exit { opacity: 0; transform: translateY(-10px); transition: opacity 0.2s ease, transform 0.2s ease; }
+
+    /* Endpoint celebration */
+    @keyframes celebrate {
+      0% { transform: scale(0.95); opacity: 0; }
+      50% { transform: scale(1.02); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    .celebrate { animation: celebrate 0.6s ease-out forwards; }
+
+    /* Pulse for active pathway */
+    @keyframes gentle-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(0,180,216,0.3); }
+      50% { box-shadow: 0 0 0 6px rgba(0,180,216,0); }
+    }
+    .pathway-active { animation: gentle-pulse 2s infinite; }
+
+    /* Progress bar fill */
+    .progress-fill { transition: width 0.5s ease; }
+
+    /* Tooltip styles */
+    .glossary-tooltip {
+      position: fixed; z-index: 100; max-width: 340px; padding: 16px;
+      background: var(--card-bg); border: 1px solid var(--border);
+      border-radius: var(--radius); box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+      pointer-events: auto;
+    }
+    .dark-mode .glossary-tooltip { background: #1e293b; border-color: #334155; }
+
+    /* Button pill */
+    .btn-pill {
+      display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+      padding: 12px 24px; border-radius: 999px; font-weight: 600; font-size: 0.95rem;
+      border: 2px solid var(--navy); color: var(--navy); background: transparent;
+      cursor: pointer; transition: all 0.25s ease; min-height: 44px; min-width: 44px;
+    }
+    .btn-pill:hover { background: var(--teal); border-color: var(--teal); color: #fff; }
+    .btn-pill.selected { background: var(--navy); border-color: var(--navy); color: #fff; }
+    .dark-mode .btn-pill { border-color: var(--teal); color: var(--teal); }
+    .dark-mode .btn-pill:hover { background: var(--teal); color: #fff; }
+    .dark-mode .btn-pill.selected { background: var(--teal); color: #fff; }
+
+    /* Scrollbar */
+    .sidebar-scroll::-webkit-scrollbar { width: 4px; }
+    .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+    .sidebar-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+    /* Card shadow */
+    .card-shadow { box-shadow: 0 1px 3px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.06); }
+    .card-shadow-lg { box-shadow: 0 4px 12px rgba(0,0,0,0.08), 0 8px 32px rgba(0,0,0,0.08); }
+
+    /* Info button */
+    .info-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 20px; height: 20px; border-radius: 50%; font-size: 11px; font-weight: 700;
+      background: var(--teal); color: #fff; cursor: pointer; border: none;
+      vertical-align: middle; margin-left: 4px; line-height: 1;
+      transition: background 0.2s;
+    }
+    .info-btn:hover { background: var(--navy); }
+
+    /* Pathway badge */
+    .pathway-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 4px 12px; border-radius: 999px; font-size: 0.75rem;
+      font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;
     }
 
-    /* Reset & viewport */
-    html,body{
-      height:100%;
-      width:100%;
-      margin:0;
-      padding:0;
-      background:var(--precision-midnight);
-      font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-      overflow:hidden;
-      -webkit-font-smoothing:antialiased;
-      -moz-osx-font-smoothing:grayscale;
+    /* Why section */
+    .why-section { max-height: 0; overflow: hidden; transition: max-height 0.35s ease; }
+    .why-section.open { max-height: 300px; }
+
+    /* Print styles */
+    @media print {
+      .no-print { display: none !important; }
+      body { background: #fff !important; color: #000 !important; }
+      .card-shadow, .card-shadow-lg { box-shadow: none !important; border: 1px solid #ccc; }
     }
 
-    /* Container fills viewport */
-    .stage{
-      position:relative;
-      width:100vw;
-      height:100vh;
-      overflow:hidden;
-      touch-action:none;
-      user-select:none;
-    }
-
-    /* Logo element */
-    #logo {
-      position:absolute;
-      width:220px; /* baseline width as requested */
-      height:auto;
-      will-change:transform;
-      transform: translate3d(0,0,0);
-      pointer-events:none;
-      -webkit-user-drag: none;
-      user-drag: none;
-      image-rendering: optimizeQuality;
-      filter: drop-shadow(0 2px 6px rgba(0,0,0,0.35));
-    }
-
-    /* Glassmorphism pitch box pinned bottom-center */
-    .pitch {
-      position: absolute;
-      left: 50%;
-      bottom: 36px;
-      transform: translateX(-50%);
-      background: var(--glass-bg);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid var(--glass-border);
-      box-shadow: var(--glass-shadow);
-      padding: 16px 24px;
-      border-radius: 8px;
-      max-width: min(880px, calc(100% - 48px));
-      box-sizing: border-box;
-    }
-
-    .pitch p{
-      margin:0;
-      color: var(--regulatory-slate);
-      font-weight:400;
-      font-size:16px;
-      line-height:1.6;
-      letter-spacing:0;
-      text-align:center;
-      -webkit-font-smoothing:antialiased;
-    }
-
-    /* Small accessibility helper: reduce motion preference */
-    @media (prefers-reduced-motion: reduce) {
-      #logo { transition: none !important; }
-    }
-
-    /* Ensure image never exceeds viewport on very small screens */
-    @media (max-width: 260px) {
-      #logo { width: 160px; }
-    }
+    /* Quick ref tab */
+    .qr-pathway-card { border-left: 4px solid; padding: 16px; margin-bottom: 12px; border-radius: 0 var(--radius) var(--radius) 0; }
   </style>
 </head>
-<body>
-  <div class="stage" id="stage" aria-hidden="false">
-    <img id="logo" src="logo.png" alt="ClearBox Compliance logo" draggable="false" />
-    <div class="pitch" role="status" aria-live="polite">
-      <p>We are currently clearing out a lean framework of the boxes. Thank you for your patience.</p>
+<body data-id="0">
+  <app-icon data-id="1" hidden data-icon="shield-check" data-palette="Blue"></app-icon>
+  <app-disclaimer data-id="2" intent="medical"></app-disclaimer>
+
+  <!-- HEADER -->
+  <header data-id="3" id="header-bar-j4k2" class="sticky top-0 z-50 no-print" style="background:var(--navy);">
+    <div data-id="4" class="max-w-7xl mx-auto flex items-center justify-between px-4 py-3 md:px-6">
+      <div data-id="5" class="flex items-center gap-3">
+        <div data-id="6" class="flex items-center gap-1">
+          <i data-id="7" data-lucide="shield-check" class="w-7 h-7 text-teal"></i>
+          <span data-id="8" class="text-xl md:text-2xl font-extrabold text-white">ClearBox</span>
+          <span data-id="9" class="text-xl md:text-2xl font-extrabold text-teal">Compliance.pro</span>
+        </div>
+        <span data-id="10" class="hidden md:inline-block text-sm text-slate-300 border-l border-slate-500 pl-3 ml-2">Precision Regulatory Guidance for Medical Device Companies</span>
+      </div>
+      <div data-id="11" class="flex items-center gap-2 md:gap-3">
+        <button data-id="12" id="dark-toggle-x8m1" class="p-2 rounded-lg text-slate-300 hover:text-white hover:bg-white/10 transition" title="Toggle dark mode">
+          <i data-id="13" data-lucide="moon" class="w-5 h-5" id="dark-icon-moon"></i>
+          <i data-id="14" data-lucide="sun" class="w-5 h-5 hidden" id="dark-icon-sun"></i>
+        </button>
+        <button data-id="15" id="print-btn-r3q7" class="hidden md:inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-white/10 transition">
+          <i data-id="16" data-lucide="printer" class="w-4 h-4"></i> Print
+        </button>
+        <button data-id="17" id="save-btn-m2n9" class="hidden md:inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-slate-300 hover:text-white hover:bg-white/10 transition">
+          <i data-id="18" data-lucide="save" class="w-4 h-4"></i> Save
+        </button>
+        <button data-id="19" id="restart-btn-h7t4" class="inline-flex items-center gap-2 px-3 py-2 md:px-4 md:py-2 rounded-lg text-sm font-semibold bg-teal text-white hover:bg-teal-dark transition">
+          <i data-id="20" data-lucide="rotate-ccw" class="w-4 h-4"></i> <span data-id="21" class="hidden sm:inline">Start Over</span>
+        </button>
+        <button data-id="22" id="mobile-menu-btn-v5z3" class="md:hidden p-2 text-slate-300 hover:text-white">
+          <i data-id="23" data-lucide="menu" class="w-6 h-6"></i>
+        </button>
+      </div>
+    </div>
+    <!-- Tagline on mobile -->
+    <div data-id="24" class="md:hidden px-4 pb-2 text-xs text-slate-400">Precision Regulatory Guidance for Medical Device Companies</div>
+  </header>
+
+  <!-- TABS: Decision Tree vs Quick Reference -->
+  <div data-id="25" id="tab-bar-q2w8" class="no-print border-b" style="border-color:var(--border);background:var(--card-bg);">
+    <div data-id="26" class="max-w-7xl mx-auto flex px-4 md:px-6">
+      <button data-id="27" class="tab-btn px-4 py-3 text-sm font-semibold border-b-2 transition" data-tab="tree" style="border-color:var(--teal);color:var(--teal);">
+        <span data-id="28" class="flex items-center gap-2"><i data-id="29" data-lucide="git-branch" class="w-4 h-4"></i> Decision Tree</span>
+      </button>
+      <button data-id="30" class="tab-btn px-4 py-3 text-sm font-semibold border-b-2 border-transparent transition" data-tab="quickref" style="color:var(--text-muted);">
+        <span data-id="31" class="flex items-center gap-2"><i data-id="32" data-lucide="book-open" class="w-4 h-4"></i> Quick Reference</span>
+      </button>
     </div>
   </div>
 
-  <script>
-    (function () {
-      const logo = document.getElementById('logo');
-      const stage = document.getElementById('stage');
+  <!-- MOBILE SIDEBAR OVERLAY -->
+  <div data-id="33" id="mobile-sidebar-a3b5" class="fixed inset-0 z-40 hidden">
+    <div data-id="34" class="absolute inset-0 bg-black/50" id="mobile-sidebar-backdrop-c7d9"></div>
+    <div data-id="35" class="absolute left-0 top-0 bottom-0 w-80 max-w-[85vw] overflow-y-auto p-5 sidebar-scroll" style="background:var(--card-bg);">
+      <div data-id="36" class="flex items-center justify-between mb-4">
+        <span data-id="37" class="font-bold text-lg" style="color:var(--navy);">Decision Trail</span>
+        <button data-id="38" id="mobile-sidebar-close-e1f3" class="p-2 rounded-lg hover:bg-gray-200 transition">
+          <i data-id="39" data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+      <div data-id="40" id="mobile-progress-content-g2h4"></div>
+    </div>
+  </div>
 
-      // Physics parameters
-      let vx = 180; // pixels per second (baseline moderate speed)
-      let vy = 120; // pixels per second
-      const varianceOnBounce = 0.06; // up to ±6% micro-adjustment
-      const minSpeed = 60; // avoid extremely slow speeds
-      const maxSpeed = 600; // cap top speed
+  <!-- MAIN: DECISION TREE TAB -->
+  <main data-id="41" id="tree-tab-content-k5l7" class="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8">
+    <div data-id="42" class="flex flex-col md:flex-row gap-6 md:gap-8">
 
-      // Position (top-left of the image)
-      let pos = { x: 0, y: 0 };
-      let lastTime = null;
-      let logoW = 220, logoH = 100; // will be updated after image loads
+      <!-- LEFT SIDEBAR: Progress Trail (desktop) -->
+      <aside data-id="43" id="sidebar-desktop-m8n0" class="hidden md:block w-72 lg:w-80 flex-shrink-0 no-print">
+        <div data-id="44" class="sticky top-24 rounded-xl p-5 card-shadow" style="background:var(--card-bg);border:1px solid var(--border);">
+          <!-- Pathway Indicator -->
+          <div data-id="45" class="mb-4">
+            <div data-id="46" class="text-xs font-semibold uppercase tracking-wider mb-2" style="color:var(--text-muted);">Active Pathway</div>
+            <div data-id="47" id="pathway-indicator-p1q3" class="flex gap-2 flex-wrap">
+              <span data-id="48" class="pathway-badge" style="background:#eff6ff;color:var(--hw-color);"><i data-id="49" data-lucide="cpu" class="w-3 h-3"></i> Hardware</span>
+              <span data-id="50" class="pathway-badge" style="background:#f5f3ff;color:var(--aiml-color);"><i data-id="51" data-lucide="brain" class="w-3 h-3"></i> AI/ML</span>
+              <span data-id="52" class="pathway-badge" style="background:#ecfdf5;color:var(--samd-color);"><i data-id="53" data-lucide="monitor-smartphone" class="w-3 h-3"></i> SaMD</span>
+              <span data-id="54" class="pathway-badge" style="background:#fff7ed;color:var(--simd-color);"><i data-id="55" data-lucide="hard-drive" class="w-3 h-3"></i> SiMD</span>
+            </div>
+          </div>
+          <!-- Progress Bar -->
+          <div data-id="56" class="mb-4">
+            <div data-id="57" class="flex items-center justify-between text-xs font-medium mb-1">
+              <span data-id="58" style="color:var(--text-muted);">Progress</span>
+              <span data-id="59" id="progress-pct-r4s6" style="color:var(--teal);">0%</span>
+            </div>
+            <div data-id="60" class="w-full h-2 rounded-full" style="background:var(--border);">
+              <div data-id="61" id="progress-bar-t5u7" class="progress-fill h-2 rounded-full" style="width:0%;background:var(--teal);"></div>
+            </div>
+          </div>
+          <!-- Breadcrumb Trail -->
+          <div data-id="62" class="text-xs font-semibold uppercase tracking-wider mb-3" style="color:var(--text-muted);">Decision Trail</div>
+          <div data-id="63" id="breadcrumb-trail-v8w0" class="sidebar-scroll max-h-[55vh] overflow-y-auto space-y-2">
+            <div data-id="64" class="text-sm italic" style="color:var(--text-muted);">No decisions yet. Begin below.</div>
+          </div>
+        </div>
+      </aside>
 
-      // Ensure logo dimensions are known
-      function updateLogoSize() {
-        logoW = logo.offsetWidth || 220;
-        logoH = logo.offsetHeight || (logoW * 0.45);
+      <!-- RIGHT PANEL: Question Card -->
+      <section data-id="65" id="question-panel-x1y3" class="flex-1 min-w-0">
+        <!-- Mobile progress bar -->
+        <div data-id="66" class="md:hidden mb-4">
+          <div data-id="67" class="flex items-center justify-between text-xs font-medium mb-1">
+            <button data-id="68" id="mobile-trail-btn-z4a6" class="flex items-center gap-1 font-semibold" style="color:var(--teal);">
+              <i data-id="69" data-lucide="list" class="w-4 h-4"></i> View Trail
+            </button>
+            <span data-id="70" id="progress-pct-mobile-b7c9" style="color:var(--teal);">0%</span>
+          </div>
+          <div data-id="71" class="w-full h-2 rounded-full" style="background:var(--border);">
+            <div data-id="72" id="progress-bar-mobile-d0e2" class="progress-fill h-2 rounded-full" style="width:0%;background:var(--teal);"></div>
+          </div>
+        </div>
+
+        <!-- Question Card Container -->
+        <div data-id="73" id="question-card-container-f3g5"></div>
+      </section>
+    </div>
+  </main>
+
+  <!-- MAIN: QUICK REFERENCE TAB -->
+  <main data-id="74" id="quickref-tab-content-h6i8" class="max-w-7xl mx-auto px-4 md:px-6 py-6 md:py-8 hidden">
+    <h2 data-id="75" class="text-2xl md:text-3xl font-extrabold mb-6" style="color:var(--navy);">Quick Reference: All Regulatory Pathways</h2>
+    <div data-id="76" class="grid gap-6 md:grid-cols-2">
+      <!-- Hardware -->
+      <div data-id="77" class="qr-pathway-card rounded-xl card-shadow" style="border-left-color:var(--hw-color);background:var(--card-bg);">
+        <div data-id="78" class="flex items-center gap-2 mb-3">
+          <span data-id="79" class="pathway-badge" style="background:#eff6ff;color:var(--hw-color);"><i data-id="80" data-lucide="cpu" class="w-3 h-3"></i> Hardware</span>
+        </div>
+        <h3 data-id="81" class="text-lg font-bold mb-2" style="color:var(--navy);">Pure Hardware Pathway</h3>
+        <ul data-id="82" class="text-sm space-y-1" style="color:var(--text-muted);">
+          <li data-id="83">• <strong data-id="84">Class I:</strong> May be exempt from 510(k)</li>
+          <li data-id="85">• <strong data-id="86">Class II — 510(k):</strong> Identify predicate, demonstrate substantial equivalence</li>
+          <li data-id="87">• <strong data-id="88">Class II — De Novo:</strong> Novel low-mod risk, no predicate needed</li>
+          <li data-id="89">• <strong data-id="90">Class III — PMA:</strong> High risk, full clinical evidence required</li>
+        </ul>
+        <div data-id="91" class="mt-3 text-xs font-medium" style="color:var(--hw-color);">Key Standards: ISO 14971, IEC 60601, ISO 13485</div>
+      </div>
+      <!-- AI/ML -->
+      <div data-id="92" class="qr-pathway-card rounded-xl card-shadow" style="border-left-color:var(--aiml-color);background:var(--card-bg);">
+        <div data-id="93" class="flex items-center gap-2 mb-3">
+          <span data-id="94" class="pathway-badge" style="background:#f5f3ff;color:var(--aiml-color);"><i data-id="95" data-lucide="brain" class="w-3 h-3"></i> AI/ML</span>
+        </div>
+        <h3 data-id="96" class="text-lg font-bold mb-2" style="color:var(--navy);">AI/ML Device Pathway</h3>
+        <ul data-id="97" class="text-sm space-y-1" style="color:var(--text-muted);">
+          <li data-id="98">• <strong data-id="99">Locked Algorithm:</strong> Standard 510(k) with AI-specific data requirements</li>
+          <li data-id="100">• <strong data-id="101">Adaptive Algorithm:</strong> 510(k) + Predetermined Change Control Plan (PCCP)</li>
+          <li data-id="102">• <strong data-id="103">Transparent CDS:</strong> May qualify as non-device software</li>
+          <li data-id="104">• <strong data-id="105">Autonomous AI:</strong> High-scrutiny review, consider Breakthrough Device</li>
+        </ul>
+        <div data-id="106" class="mt-3 text-xs font-medium" style="color:var(--aiml-color);">Key: GMLP, PCCP, Cybersecurity, Dataset Documentation</div>
+      </div>
+      <!-- SaMD -->
+      <div data-id="107" class="qr-pathway-card rounded-xl card-shadow" style="border-left-color:var(--samd-color);background:var(--card-bg);">
+        <div data-id="108" class="flex items-center gap-2 mb-3">
+          <span data-id="109" class="pathway-badge" style="background:#ecfdf5;color:var(--samd-color);"><i data-id="110" data-lucide="monitor-smartphone" class="w-3 h-3"></i> SaMD</span>
+        </div>
+        <h3 data-id="111" class="text-lg font-bold mb-2" style="color:var(--navy);">Software as Medical Device (SaMD)</h3>
+        <ul data-id="112" class="text-sm space-y-1" style="color:var(--text-muted);">
+          <li data-id="113">• <strong data-id="114">Category I:</strong> Low risk — may be exempt or basic 510(k)</li>
+          <li data-id="115">• <strong data-id="116">Category II:</strong> 510(k) + analytical & clinical performance evidence</li>
+          <li data-id="117">• <strong data-id="118">Category III:</strong> 510(k) + clinical validation study</li>
+          <li data-id="119">• <strong data-id="120">Category IV:</strong> Likely PMA — highest risk SaMD</li>
+        </ul>
+        <div data-id="121" class="mt-3 text-xs font-medium" style="color:var(--samd-color);">Framework: IMDRF N12, IEC 62304, ISO 14971</div>
+      </div>
+      <!-- SiMD -->
+      <div data-id="122" class="qr-pathway-card rounded-xl card-shadow" style="border-left-color:var(--simd-color);background:var(--card-bg);">
+        <div data-id="123" class="flex items-center gap-2 mb-3">
+          <span data-id="124" class="pathway-badge" style="background:#fff7ed;color:var(--simd-color);"><i data-id="125" data-lucide="hard-drive" class="w-3 h-3"></i> SiMD</span>
+        </div>
+        <h3 data-id="126" class="text-lg font-bold mb-2" style="color:var(--navy);">Software in Medical Device (SiMD)</h3>
+        <ul data-id="127" class="text-sm space-y-1" style="color:var(--text-muted);">
+          <li data-id="128">• <strong data-id="129">Class A:</strong> No injury — basic documentation</li>
+          <li data-id="130">• <strong data-id="131">Class B:</strong> Non-serious injury — moderate documentation</li>
+          <li data-id="132">• <strong data-id="133">Class C:</strong> Death/serious injury — full verification</li>
+          <li data-id="134">• Cybersecurity assessment for network-connected devices</li>
+        </ul>
+        <div data-id="135" class="mt-3 text-xs font-medium" style="color:var(--simd-color);">Key: IEC 62304, SOUP evaluation, SBOM, Cybersecurity</div>
+      </div>
+    </div>
+  </main>
+
+  <!-- GLOSSARY MODAL -->
+  <div data-id="136" id="glossary-modal-j9k1" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div data-id="137" class="absolute inset-0 bg-black/40" id="glossary-backdrop-l2m4"></div>
+    <div data-id="138" class="relative w-full max-w-md rounded-xl p-6 card-shadow-lg" style="background:var(--bg);border:1px solid var(--border);">
+      <button data-id="139" id="glossary-close-n5o7" class="absolute top-3 right-3 p-2 rounded-lg hover:bg-gray-100 transition">
+        <i data-id="140" data-lucide="x" class="w-5 h-5"></i>
+      </button>
+      <div data-id="141" class="flex items-center gap-2 mb-3">
+        <i data-id="142" data-lucide="book-open" class="w-5 h-5" style="color:var(--teal);"></i>
+        <span data-id="143" class="font-bold text-lg" id="glossary-term-p8q0" style="color:var(--navy);"></span>
+      </div>
+      <p data-id="144" id="glossary-def-r1s3" class="text-sm leading-relaxed" style="color:var(--text-muted);"></p>
+    </div>
+  </div>
+
+  <!-- CHECKLIST MODAL -->
+  <div data-id="145" id="checklist-modal-t4u6" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div data-id="146" class="absolute inset-0 bg-black/40" id="checklist-backdrop-v7w9"></div>
+    <div data-id="147" class="relative w-full max-w-lg max-h-[85vh] overflow-y-auto rounded-xl p-6 card-shadow-lg" style="background:var(--bg);border:1px solid var(--border);">
+      <button data-id="148" id="checklist-close-x0y2" class="absolute top-3 right-3 p-2 rounded-lg hover:bg-gray-100 transition no-print">
+        <i data-id="149" data-lucide="x" class="w-5 h-5"></i>
+      </button>
+      <div data-id="150" class="flex items-center gap-2 mb-1">
+        <i data-id="151" data-lucide="clipboard-check" class="w-5 h-5" style="color:var(--teal);"></i>
+        <span data-id="152" class="font-bold text-lg" style="color:var(--navy);">Submission Checklist</span>
+      </div>
+      <div data-id="153" id="checklist-content-a3b5" class="mt-4 text-sm space-y-2"></div>
+      <div data-id="154" class="mt-5 flex gap-3 no-print">
+        <button data-id="155" id="checklist-print-c6d8" class="btn-pill text-sm px-5 py-2">
+          <i data-id="156" data-lucide="printer" class="w-4 h-4"></i> Print Checklist
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SAVE TOAST -->
+  <div data-id="157" id="save-toast-e9f1" class="fixed bottom-6 right-6 z-50 hidden">
+    <div data-id="158" class="flex items-center gap-3 px-5 py-3 rounded-xl card-shadow-lg text-sm font-medium" style="background:var(--navy);color:#fff;">
+      <i data-id="159" data-lucide="check-circle" class="w-5 h-5 text-teal"></i>
+      <span data-id="160" id="save-toast-msg-g2h4">Progress saved!</span>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer data-id="161" id="footer-i5j7" class="border-t mt-8 py-6 px-4 text-center" style="border-color:var(--border);background:var(--card-bg);">
+    <p data-id="162" class="text-xs mb-1" style="color:var(--gold);">⚠ For informational purposes only. Consult qualified regulatory counsel for device-specific guidance.</p>
+    <p data-id="163" class="text-xs" style="color:var(--text-muted);">© 2026 ClearBoxCompliance.pro &middot; Made by Copilot</p>
+  </footer>
+
+<script>
+// ========== GLOSSARY DATA ==========
+const GLOSSARY = {
+  "510(k)": "A premarket submission to the FDA demonstrating that a new device is substantially equivalent to a legally marketed (predicate) device. Named after Section 510(k) of the Federal Food, Drug, and Cosmetic Act.",
+  "De Novo": "A regulatory pathway for novel, low-to-moderate risk devices that lack a predicate. The De Novo process creates a new classification and can serve as a predicate for future 510(k) submissions.",
+  "PMA": "Premarket Approval — the most rigorous FDA pathway, required for Class III (high-risk) devices. Requires clinical evidence of safety and effectiveness.",
+  "SaMD": "Software as a Medical Device — software intended to be used for medical purposes that performs these purposes without being part of a hardware medical device.",
+  "SiMD": "Software in a Medical Device — software that is an integral part of a hardware medical device, controlling the device or providing essential functionality.",
+  "AI/ML": "Artificial Intelligence / Machine Learning — algorithms that learn from data to make predictions or decisions. In medical devices, AI/ML can be 'locked' (fixed after training) or 'adaptive' (continues learning).",
+  "PCCP": "Predetermined Change Control Plan — an FDA framework for AI/ML devices that allows manufacturers to describe anticipated modifications and the methodology to implement them without a new submission.",
+  "IMDRF": "International Medical Device Regulators Forum — a voluntary group of medical device regulators that develops harmonized guidance, including the SaMD risk categorization framework (Categories I-IV).",
+  "IEC 62304": "International standard for medical device software lifecycle processes. Defines requirements for development planning, requirements analysis, architecture, testing, maintenance, and risk management of medical device software.",
+  "IEC 62366": "International standard for usability engineering of medical devices. Requires manufacturers to apply a user-centered design process to minimize use-related risks.",
+  "ISO 14971": "International standard for risk management for medical devices. Covers the entire product lifecycle from design through production and post-market activities.",
+  "CADe": "Computer-Aided Detection — AI software that identifies and marks regions of interest in medical images (e.g., flagging potential lesions on a mammogram) for clinician review.",
+  "CADx": "Computer-Aided Diagnosis — AI software that provides an assessment or characterization of findings (e.g., classifying a lesion as benign vs. malignant), going beyond simple detection.",
+  "SOUP": "Software of Unknown Provenance — software that is already developed, often open-source or commercial off-the-shelf (COTS), where the development process is not fully known. IEC 62304 requires risk-based evaluation of all SOUP components.",
+  "SBOM": "Software Bill of Materials — a comprehensive inventory of all software components, libraries, and dependencies in a device. Required by FDA for cybersecurity transparency.",
+  "Substantial Equivalence": "The determination that a new device is as safe and effective as a legally marketed predicate device. Must have the same intended use and either (a) the same technological characteristics, or (b) different characteristics that do not raise new safety/effectiveness questions.",
+  "Predicate Device": "A legally marketed device to which substantial equivalence is demonstrated in a 510(k) submission. The predicate must be a device cleared through 510(k), classified through De Novo, or pre-Amendments Class III.",
+  "eSTAR": "Electronic Submission Template and Resource — FDA's standardized electronic template for preparing 510(k) submissions. Required for all 510(k) submissions as of October 2023.",
+  "Q-Submission": "A formal FDA mechanism for obtaining feedback and guidance before submitting a marketing application. Includes Pre-Submissions (Pre-Sub), Informational Meetings, and Agreement/Determination Meetings."
+};
+
+// ========== DECISION TREE DATA ==========
+const NODES = {
+  start: {
+    id: 'start', question: 'Does your product meet the FDA definition of a "medical device" under 21 CFR 201(h)?',
+    helper: 'A device is an instrument, apparatus, machine, implant, in vitro reagent, or similar article intended for use in diagnosis, cure, mitigation, treatment, or prevention of disease, or to affect the structure/function of the body.',
+    why: 'This threshold determination dictates whether FDA has jurisdiction over your product. Products that do not meet the statutory definition are not subject to FDA device requirements.',
+    options: [
+      { label: 'Yes', next: 'q2' },
+      { label: 'No', next: 'end_not_device' },
+      { label: 'Not Sure — Needs Assessment', next: 'end_not_device_maybe' }
+    ],
+    pathway: null, progress: 5
+  },
+  q2: {
+    id: 'q2', question: 'Does your device contain any software component?',
+    helper: 'This includes embedded firmware, standalone mobile/desktop apps, cloud-based algorithms, AI/ML models, or any programmable logic that contributes to the device\'s medical function.',
+    why: 'Software components trigger additional regulatory requirements including IEC 62304 lifecycle documentation, cybersecurity review, and potentially separate classification as SaMD.',
+    options: [
+      { label: 'Yes — Contains Software', next: 'q3' },
+      { label: 'No — Pure Hardware', next: 'hw1' }
+    ],
+    pathway: null, progress: 12
+  },
+  q3: {
+    id: 'q3', question: 'Does your software fall under FDA\'s Software Functions Policy exclusions?',
+    helper: 'Excluded functions include: administrative support (scheduling, billing), general wellness, electronic patient records, certain clinical decision support where the basis is transparent and the clinician can independently verify. See FDA guidance "Policy for Device Software Functions" (Sept 2019).',
+    why: 'If your software function is excluded under Section 520(o) of the FD&C Act, it is not a "device" and falls outside FDA\'s regulatory authority — reducing your regulatory burden significantly.',
+    options: [
+      { label: 'Yes — Software is Excluded', next: 'end_non_device_sw' },
+      { label: 'No — Software is a Device Function', next: 'q4' },
+      { label: 'Uncertain — Needs Review', next: 'q4' }
+    ],
+    pathway: null, progress: 20
+  },
+  q4: {
+    id: 'q4', question: 'Can your software function independently as a medical device without being physically part of the hardware?',
+    helper: 'SaMD (Software as a Medical Device) operates on general-purpose computing platforms (phones, tablets, cloud servers) and performs medical functions on its own. SiMD (Software in a Medical Device) is integral to and controls a hardware device.',
+    why: 'SaMD and SiMD follow different regulatory frameworks. SaMD uses IMDRF risk categorization; SiMD follows the hardware device\'s classification with IEC 62304 software lifecycle requirements.',
+    options: [
+      { label: 'Yes — It\'s SaMD (Standalone Software)', next: 'sd1' },
+      { label: 'No — It\'s SiMD (Embedded in Hardware)', next: 'q5' }
+    ],
+    pathway: null, progress: 28
+  },
+  q5: {
+    id: 'q5', question: 'Does your device use AI/ML algorithms to perform its primary medical function?',
+    helper: 'AI/ML includes machine learning classifiers, neural networks, natural language processing, computer vision models, and adaptive algorithms that learn from data.',
+    why: 'AI/ML devices have additional FDA expectations around training data documentation, algorithm performance metrics, bias analysis, and potentially a Predetermined Change Control Plan (PCCP) for adaptive algorithms.',
+    options: [
+      { label: 'Yes — Uses AI/ML', next: 'ai1' },
+      { label: 'No — Traditional Software', next: 'si1' }
+    ],
+    pathway: 'simd', progress: 35
+  },
+
+  // ===== HARDWARE PATHWAY =====
+  hw1: {
+    id: 'hw1', question: 'What is your device\'s FDA risk classification?',
+    helper: 'Class I: Low risk (e.g., bandages, tongue depressors). Class II: Moderate risk (e.g., powered wheelchairs, pregnancy tests). Class III: High risk (e.g., pacemakers, heart valves). Use the FDA Product Classification Database to identify your device\'s classification.',
+    why: 'FDA risk classification determines the regulatory pathway. Most Class I devices are exempt from premarket review; Class II typically requires 510(k); Class III requires PMA.',
+    options: [
+      { label: 'Class I (Low Risk)', next: 'end_class1' },
+      { label: 'Class II (Moderate Risk)', next: 'hw2' },
+      { label: 'Class III (High Risk)', next: 'end_pma' },
+      { label: 'Not Sure', next: 'end_classification_help' }
+    ],
+    pathway: 'hardware', progress: 30
+  },
+  hw2: {
+    id: 'hw2', question: 'Have you identified a suitable predicate device in the FDA 510(k) database?',
+    helper: 'A predicate is a legally marketed device to which you will compare your device. Search the FDA 510(k) database, De Novo database, and classification regulations. A good predicate has the same intended use and similar technology.',
+    why: 'The 510(k) pathway requires demonstrating substantial equivalence to a predicate. Without a valid predicate, you may need to pursue the De Novo pathway.',
+    options: [
+      { label: 'Yes — Predicate Identified', next: 'hw3' },
+      { label: 'No — No Suitable Predicate', next: 'hw5' }
+    ],
+    pathway: 'hardware', progress: 40
+  },
+  hw3: {
+    id: 'hw3', question: 'Does your device have the SAME intended use as the predicate?',
+    helper: 'Intended use means the general purpose of the device (e.g., monitoring blood glucose levels). Compare your device\'s indications for use statement with the predicate\'s cleared indications.',
+    why: 'Same intended use is the first requirement for substantial equivalence. If the intended use differs, the FDA will likely find your device NOT substantially equivalent, blocking the 510(k) pathway.',
+    options: [
+      { label: 'Yes — Same Intended Use', next: 'hw4' },
+      { label: 'No — Different Intended Use', next: 'end_se_failure' }
+    ],
+    pathway: 'hardware', progress: 55
+  },
+  hw4: {
+    id: 'hw4', question: 'Does your device have DIFFERENT technological characteristics than the predicate?',
+    helper: 'Technological characteristics include materials, design, energy source, and other features. Examples: different sensor technology, different materials of construction, different mechanism of action.',
+    why: 'If the technological characteristics are the same, a standard 510(k) with bench testing is typically sufficient. Different characteristics require additional analysis.',
+    options: [
+      { label: 'No — Same Technology', next: 'end_510k_standard' },
+      { label: 'Yes — Different Technology', next: 'hw4b' }
+    ],
+    pathway: 'hardware', progress: 68
+  },
+  hw4b: {
+    id: 'hw4b', question: 'Do the different technological characteristics raise NEW safety or effectiveness questions?',
+    helper: 'Consider whether the new technology introduces risks not present in the predicate, affects biocompatibility, changes the user interface, or alters the performance envelope of the device.',
+    why: 'If new questions are raised, additional performance data (bench, animal, or clinical) must be submitted. If the new questions cannot be resolved, substantial equivalence fails.',
+    options: [
+      { label: 'No — No New Questions', next: 'end_510k_perf' },
+      { label: 'Yes — Raises New Questions', next: 'end_se_failure' }
+    ],
+    pathway: 'hardware', progress: 80
+  },
+  hw5: {
+    id: 'hw5', question: 'Is your device novel (no predicate exists) and does it present LOW-TO-MODERATE risk?',
+    helper: 'De Novo is for novel devices that are not high-risk. If your device presents significant risk (life-supporting, life-sustaining, substantially important in preventing impairment), PMA may be required.',
+    why: 'The De Novo pathway was created specifically for novel devices that don\'t fit neatly into PMA. A successful De Novo creates a new classification regulation and can serve as a predicate for future 510(k)s.',
+    options: [
+      { label: 'Yes — Novel & Low-to-Moderate Risk', next: 'end_denovo' },
+      { label: 'No — High Risk or Uncertain', next: 'end_pma_counsel' }
+    ],
+    pathway: 'hardware', progress: 80
+  },
+
+  // ===== AI/ML PATHWAY =====
+  ai1: {
+    id: 'ai1', question: 'What is the primary function of your AI/ML component?',
+    helper: 'Select the category that best describes what your AI/ML algorithm does in its clinical context.',
+    why: 'The AI/ML function type determines the regulatory scrutiny level. Autonomous systems face the highest bar; transparent CDS may not even be regulated as a device.',
+    options: [
+      { label: 'CADe/CADx — Detection or Diagnosis', next: 'ai2' },
+      { label: 'Clinical Decision Support (CDS)', next: 'ai3' },
+      { label: 'Predictive Analytics / Patient Monitoring', next: 'ai4' },
+      { label: 'Autonomous Treatment Recommendation', next: 'end_ai_autonomous' }
+    ],
+    pathway: 'aiml', progress: 45
+  },
+  ai2: {
+    id: 'ai2', question: 'Is your AI algorithm locked (fixed post-training) or adaptive (continues learning post-deployment)?',
+    helper: 'A LOCKED algorithm does not change after it is trained and validated — the same input always produces the same output. An ADAPTIVE algorithm continues to learn from new data, potentially changing its performance characteristics over time.',
+    why: 'Locked algorithms follow a standard validation and submission process. Adaptive algorithms require a Predetermined Change Control Plan (PCCP) describing how changes will be managed and validated.',
+    options: [
+      { label: 'Locked (Fixed After Training)', next: 'end_ai_locked' },
+      { label: 'Adaptive (Continues Learning)', next: 'end_ai_adaptive' }
+    ],
+    pathway: 'aiml', progress: 70
+  },
+  ai3: {
+    id: 'ai3', question: 'Is the basis for the recommendation transparent, so clinicians can independently review and verify?',
+    helper: 'Transparent CDS means the software provides the underlying data, rationale, and reasoning so the clinician does not need to rely solely on the software\'s output. Think of it as "showing the work."',
+    why: 'Under Section 520(o)(1)(E), CDS that meets ALL four criteria (not intended to acquire/analyze medical data, intended for HCPs, intended to enable independent review, and not intended to replace clinician judgment) is NOT a device.',
+    options: [
+      { label: 'Yes — Fully Transparent', next: 'end_transparent_cds' },
+      { label: 'No — Opaque / Black Box', next: 'ai2' }
+    ],
+    pathway: 'aiml', progress: 60
+  },
+  ai4: {
+    id: 'ai4', question: 'Does the AI output DRIVE clinical management (replace clinician judgment) or INFORM it (clinician can override/verify)?',
+    helper: 'DRIVES: The AI\'s output directly determines a clinical action without meaningful clinician review (e.g., automated insulin dosing). INFORMS: The AI provides information that a clinician evaluates before making a decision.',
+    why: 'AI that replaces clinician judgment faces the highest level of FDA scrutiny and may qualify for the Breakthrough Device Program. AI that informs follows a more standard pathway.',
+    options: [
+      { label: 'Drives — Replaces Clinician Judgment', next: 'end_ai_drives' },
+      { label: 'Informs — Clinician Verifies', next: 'end_ai_informs' }
+    ],
+    pathway: 'aiml', progress: 70
+  },
+
+  // ===== SaMD PATHWAY =====
+  sd1: {
+    id: 'sd1', question: 'What best describes your SaMD\'s healthcare situation?',
+    helper: 'CRITICAL: Situation is immediately life-threatening or may lead to death (e.g., stroke triage). SERIOUS: May cause irreversible consequences but not immediately life-threatening (e.g., cancer screening). NON-SERIOUS: Consequences are reversible and minor (e.g., acne treatment guidance).',
+    why: 'The IMDRF framework combines healthcare situation severity with information significance to determine SaMD risk category (I-IV), which maps to regulatory requirements.',
+    options: [
+      { label: 'Critical — Life-Threatening', next: 'sd2_critical' },
+      { label: 'Serious — Irreversible Consequences', next: 'sd2_serious' },
+      { label: 'Non-Serious — Reversible', next: 'sd2_nonserious' }
+    ],
+    pathway: 'samd', progress: 40
+  },
+  sd2_critical: {
+    id: 'sd2_critical', question: 'What is the significance of information your SaMD provides to the clinical decision?',
+    helper: 'TREAT OR DIAGNOSE: Directly used for treatment or definitive diagnosis. DRIVE: Drives clinical management decisions without independent clinician analysis. INFORM: Provides information to inform, not replace, the clinician\'s decision.',
+    why: 'Combined with "Critical" healthcare situation: Treat/Diagnose → Category IV; Drive → Category III; Inform → Category II.',
+    options: [
+      { label: 'Treat or Diagnose', next: 'end_samd_iv' },
+      { label: 'Drive Clinical Management', next: 'end_samd_iii' },
+      { label: 'Inform Clinical Management', next: 'end_samd_ii' }
+    ],
+    pathway: 'samd', progress: 60
+  },
+  sd2_serious: {
+    id: 'sd2_serious', question: 'What is the significance of information your SaMD provides to the clinical decision?',
+    helper: 'TREAT OR DIAGNOSE: Directly used for treatment or definitive diagnosis. DRIVE: Drives clinical management decisions. INFORM: Provides supplementary information.',
+    why: 'Combined with "Serious" healthcare situation: Treat/Diagnose → Category III; Drive → Category II; Inform → Category I.',
+    options: [
+      { label: 'Treat or Diagnose', next: 'end_samd_iii' },
+      { label: 'Drive Clinical Management', next: 'end_samd_ii' },
+      { label: 'Inform Clinical Management', next: 'end_samd_i' }
+    ],
+    pathway: 'samd', progress: 60
+  },
+  sd2_nonserious: {
+    id: 'sd2_nonserious', question: 'What is the significance of information your SaMD provides to the clinical decision?',
+    helper: 'TREAT OR DIAGNOSE: Directly used for treatment or definitive diagnosis. DRIVE: Drives clinical management decisions. INFORM: Provides supplementary information.',
+    why: 'Combined with "Non-Serious" healthcare situation: Treat/Diagnose → Category II; Drive → Category I; Inform → Category I.',
+    options: [
+      { label: 'Treat or Diagnose', next: 'end_samd_ii' },
+      { label: 'Drive Clinical Management', next: 'end_samd_i' },
+      { label: 'Inform Clinical Management', next: 'end_samd_i' }
+    ],
+    pathway: 'samd', progress: 60
+  },
+
+  // ===== SiMD PATHWAY =====
+  si1: {
+    id: 'si1', question: 'What is your IEC 62304 software safety class?',
+    helper: 'CLASS A: Software system cannot contribute to a hazardous situation (no injury possible). CLASS B: Software system can contribute to a hazardous situation that does NOT result in serious injury. CLASS C: Software system can contribute to a hazardous situation that results in serious injury or death.',
+    why: 'IEC 62304 safety classification determines documentation rigor. Class C requires formal verification methods, complete traceability, and rigorous testing; Class A requires only basic lifecycle documentation.',
+    options: [
+      { label: 'Class A — No Injury Possible', next: 'si2', _safetyClass: 'A' },
+      { label: 'Class B — Non-Serious Injury', next: 'si2', _safetyClass: 'B' },
+      { label: 'Class C — Serious Injury / Death', next: 'si2', _safetyClass: 'C' }
+    ],
+    pathway: 'simd', progress: 45
+  },
+  si2: {
+    id: 'si2', question: 'Does your SiMD include any SOUP (Software of Unknown Provenance)?',
+    helper: 'SOUP includes open-source libraries (e.g., OpenCV, TensorFlow), commercial off-the-shelf (COTS) software, operating systems, and any third-party code where you don\'t have full visibility into the development process.',
+    why: 'IEC 62304 requires documented evaluation of all SOUP items: version, known anomalies, functional requirements, and performance requirements. You must also maintain a Software Bill of Materials (SBOM).',
+    options: [
+      { label: 'Yes — Uses SOUP / Third-Party Code', next: 'si3', _soupFlag: true },
+      { label: 'No — All Custom Code', next: 'si3', _soupFlag: false }
+    ],
+    pathway: 'simd', progress: 60
+  },
+  si3: {
+    id: 'si3', question: 'Is your SiMD device network-connected or does it receive external data inputs?',
+    helper: 'Network connections include Wi-Fi, Bluetooth, cellular, Ethernet, USB data exchange, cloud connectivity, or any interface receiving data from external systems (EHR, PACS, other devices).',
+    why: 'Network connectivity introduces cybersecurity risks. FDA\'s 2023 cybersecurity guidance requires a Secure Product Development Framework (SPDF), threat modeling, SBOM, vulnerability management, and coordinated disclosure plans for all connected devices.',
+    options: [
+      { label: 'Yes — Network Connected', next: 'end_simd_cyber' },
+      { label: 'No — Standalone / No External Data', next: 'end_simd_standard' }
+    ],
+    pathway: 'simd', progress: 78
+  }
+};
+
+// ========== ENDPOINT DATA ==========
+const ENDPOINTS = {
+  end_not_device: {
+    title: 'Not a Medical Device',
+    pathway: null, color: '#64748b', pathwayLabel: 'Assessment Complete',
+    submissionType: 'None Required',
+    reviewTime: 'N/A',
+    prepTime: 'N/A',
+    docs: [
+      'Intended use statement documenting non-device determination',
+      'Product labeling review to confirm no medical claims',
+      'Market and promotional materials audit',
+      'Design documentation supporting general-use classification',
+      'Written determination memo for regulatory files'
+    ],
+    standards: ['21 CFR 201(h) analysis'],
+    caution: 'Even non-devices must avoid making medical claims in marketing materials. FDA can reclassify products if labeling or promotion implies a medical intended use.',
+    nextSteps: [
+      'Document your non-device determination in a formal regulatory assessment memo',
+      'Review all marketing and labeling materials to ensure no medical device claims are made',
+      'Monitor FDA guidance updates — wellness/general-purpose exemptions evolve over time'
+    ]
+  },
+  end_not_device_maybe: {
+    title: 'Device Status Uncertain — Seek Guidance',
+    pathway: null, color: '#f4a261', pathwayLabel: 'Assessment Needed',
+    submissionType: 'Q-Submission (Pre-Sub) Recommended',
+    reviewTime: '75 days for written feedback (Q-Sub)',
+    prepTime: '2-4 weeks to prepare Pre-Sub package',
+    docs: [
+      'Product description with detailed intended use statement',
+      'Comparison to similar products and their regulatory status',
+      'Risk analysis (preliminary)',
+      'Pre-Submission meeting request letter',
+      'Specific questions for FDA feedback'
+    ],
+    standards: ['21 CFR 201(h)', 'FDA Pre-Submission Guidance'],
+    caution: 'Products in the "gray zone" between device and non-device classification should seek formal FDA feedback via a Q-Submission (Pre-Sub) before investing in development.',
+    nextSteps: [
+      'Prepare a Pre-Submission (Q-Sub) package with your intended use and specific questions for FDA',
+      'Engage regulatory counsel to review your product against the statutory definition',
+      'Document your analysis thoroughly regardless of outcome — this protects you if FDA inquires later'
+    ]
+  },
+  end_non_device_sw: {
+    title: 'Non-Device Software Function',
+    pathway: null, color: '#059669', pathwayLabel: 'Software Exclusion',
+    submissionType: 'No FDA device submission required',
+    reviewTime: 'N/A',
+    prepTime: 'N/A',
+    docs: [
+      'Section 520(o) analysis documenting all four exclusion criteria',
+      'Software description and intended use statement',
+      'Functional requirements specification',
+      'Risk assessment showing the software meets exclusion criteria',
+      'Written determination memo for regulatory files'
+    ],
+    standards: ['FDA Policy for Device Software Functions (2019)', 'Section 520(o) of FD&C Act'],
+    caution: 'The exclusion has strict criteria. Your software must meet ALL four requirements under 520(o)(1)(E). If your software acquires or analyzes medical device data, it likely does NOT qualify. Re-evaluate if intended use changes.',
+    nextSteps: [
+      'Document your 520(o) analysis in a formal regulatory memo',
+      'Ensure product labeling and marketing do not expand claims beyond the excluded function',
+      'Continue to assess if hardware components require separate device classification'
+    ]
+  },
+  end_class1: {
+    title: 'Class I Device — Likely Exempt',
+    pathway: 'hardware', color: '#2563eb', pathwayLabel: 'Hardware',
+    submissionType: 'Likely 510(k) Exempt (verify in 21 CFR)',
+    reviewTime: 'No FDA review for exempt devices',
+    prepTime: '2-3 months for registration & listing',
+    docs: [
+      'Establishment Registration (FDA Form 2891)',
+      'Device Listing (FDA Form 2892)',
+      'Labeling compliant with 21 CFR 801',
+      'Quality System (cGMP) — abbreviated for Class I',
+      'Adverse event reporting procedures (MDR)'
+    ],
+    standards: ['21 CFR 820 (QSR / CGMP) — abbreviated', '21 CFR 801 (Labeling)', '21 CFR 803 (MDR Reporting)'],
+    caution: 'Not all Class I devices are 510(k) exempt. Check your specific product code in the FDA Classification Database. Some Class I devices (e.g., certain surgical instruments) still require 510(k).',
+    nextSteps: [
+      'Verify your product code\'s 510(k) exemption status in 21 CFR 862-892',
+      'Register your establishment and list your device with FDA',
+      'Implement an appropriate quality management system even for exempt devices'
+    ]
+  },
+  end_pma: {
+    title: 'Class III — Premarket Approval (PMA)',
+    pathway: 'hardware', color: '#dc2626', pathwayLabel: 'Hardware — High Risk',
+    submissionType: 'Premarket Approval Application (PMA)',
+    reviewTime: '180 FDA review days (+ clock stops)',
+    prepTime: '2-5 years including clinical trials',
+    docs: [
+      'Complete device description and specifications',
+      'Clinical study data (usually pivotal trial)',
+      'Non-clinical laboratory studies (bench, biocompatibility, animal)',
+      'Manufacturing information and quality system documentation',
+      'Proposed labeling',
+      'Risk analysis (ISO 14971)',
+      'Software documentation (if applicable, per IEC 62304)',
+      'Environmental assessment or claim for categorical exclusion'
+    ],
+    standards: ['ISO 14971', 'ISO 13485', 'IEC 60601 (if electrical)', '21 CFR 814 (PMA Regulations)', 'Good Clinical Practice (GCP)'],
+    caution: 'PMA is the most time-consuming and expensive FDA pathway. Consider whether your device may qualify for De Novo or Breakthrough Device Designation to potentially reduce burden. Average PMA total cost: $75M+ including clinical trials.',
+    nextSteps: [
+      'Submit a Pre-Submission (Q-Sub) to FDA to discuss clinical study design',
+      'Evaluate eligibility for Breakthrough Device Designation (faster review, more FDA interaction)',
+      'Engage experienced regulatory counsel and plan for a multi-year development timeline'
+    ]
+  },
+  end_classification_help: {
+    title: 'Classification Assistance Needed',
+    pathway: 'hardware', color: '#f4a261', pathwayLabel: 'Hardware — TBD',
+    submissionType: 'Classification Request / Q-Submission',
+    reviewTime: '75 days for Q-Sub feedback',
+    prepTime: '2-4 weeks for classification research',
+    docs: [
+      'Detailed device description with intended use',
+      'FDA Product Classification Database search results',
+      'Comparison to similar marketed devices',
+      'Pre-Submission meeting request (if classification unclear)',
+      'Preliminary risk assessment'
+    ],
+    standards: ['21 CFR 860 (Classification procedures)', 'FDA Product Code Classification Database'],
+    caution: 'Choosing the wrong classification can result in FDA refusal, wasted time, and potential enforcement action. When uncertain, always verify with FDA through a Pre-Submission.',
+    nextSteps: [
+      'Search the FDA Product Classification Database (accessdata.fda.gov) using your device description',
+      'Review classification panels (21 CFR Parts 862-892) for analogous devices',
+      'File a Pre-Submission if classification remains ambiguous'
+    ]
+  },
+  end_510k_standard: {
+    title: 'Standard 510(k)',
+    pathway: 'hardware', color: '#2563eb', pathwayLabel: 'Hardware',
+    submissionType: 'Traditional 510(k) via eSTAR',
+    reviewTime: '90 FDA review days (MDUFA goal)',
+    prepTime: '4-8 months preparation',
+    docs: [
+      'eSTAR submission template (mandatory since Oct 2023)',
+      'Device description and intended use/indications for use',
+      'Substantial equivalence comparison table',
+      'Predicate device information (510(k) number, labeling)',
+      'Performance testing (bench testing, biocompatibility)',
+      'Labeling (draft instructions for use, package labeling)',
+      'Risk analysis per ISO 14971',
+      'Sterilization validation (if applicable)'
+    ],
+    standards: ['ISO 14971', 'ISO 13485', 'IEC 60601 (if electrical)', 'ISO 10993 (biocompatibility)', '21 CFR 807 Subpart E'],
+    caution: 'FDA\'s Refuse-to-Accept (RTA) checklist rejects ~12% of 510(k)s at intake. Ensure your submission addresses every item in the eSTAR template. Consider a Pre-Submission for complex devices.',
+    nextSteps: [
+      'Complete the eSTAR template section-by-section',
+      'Engage an accredited testing lab for any required performance testing',
+      'Consider a Pre-Submission (Q-Sub) if you have questions about testing requirements'
+    ]
+  },
+  end_510k_perf: {
+    title: '510(k) with Performance Data',
+    pathway: 'hardware', color: '#2563eb', pathwayLabel: 'Hardware',
+    submissionType: 'Traditional 510(k) with Additional Data',
+    reviewTime: '90 FDA review days (may extend with questions)',
+    prepTime: '6-12 months preparation',
+    docs: [
+      'eSTAR submission template',
+      'Device description and substantial equivalence comparison',
+      'Predicate device information',
+      'Performance testing addressing new technological characteristics',
+      'Biocompatibility evaluation (if new materials)',
+      'Clinical data or literature review (if needed)',
+      'Risk analysis per ISO 14971',
+      'Labeling and instructions for use'
+    ],
+    standards: ['ISO 14971', 'ISO 13485', 'IEC 60601', 'ISO 10993', 'Applicable recognized consensus standards'],
+    caution: 'Since your device has different technological characteristics, FDA will scrutinize your performance data closely. Ensure your testing clearly demonstrates that differences do not raise new safety/effectiveness questions.',
+    nextSteps: [
+      'Identify specific tests needed to address technological differences',
+      'Consider a Pre-Submission to align with FDA on testing expectations',
+      'Prepare a clear "substantial equivalence" argument addressing each technological difference'
+    ]
+  },
+  end_se_failure: {
+    title: 'Substantial Equivalence Not Established — Consider De Novo',
+    pathway: 'hardware', color: '#f4a261', pathwayLabel: 'Hardware — Pivot Required',
+    submissionType: 'De Novo Classification Request',
+    reviewTime: '150 review days (De Novo)',
+    prepTime: '8-18 months',
+    docs: [
+      'De Novo classification request (21 CFR 860.260)',
+      'Device description and intended use',
+      'Risk-benefit analysis',
+      'Non-clinical and clinical performance data',
+      'Proposed classification with special controls',
+      'Labeling',
+      'Risk analysis per ISO 14971'
+    ],
+    standards: ['ISO 14971', 'ISO 13485', '21 CFR 860.260'],
+    caution: 'A failed SE determination does not necessarily mean your device is high-risk. De Novo was designed specifically for this scenario. However, if your device is truly high-risk, PMA may be required.',
+    nextSteps: [
+      'Evaluate whether your device presents low-to-moderate risk (suitable for De Novo)',
+      'Submit a Pre-Submission to discuss the De Novo pathway with FDA',
+      'Begin drafting proposed special controls that would apply to your device type'
+    ]
+  },
+  end_denovo: {
+    title: 'De Novo Classification Request',
+    pathway: 'hardware', color: '#2563eb', pathwayLabel: 'Hardware — De Novo',
+    submissionType: 'De Novo Classification Request',
+    reviewTime: '150 FDA review days',
+    prepTime: '8-18 months preparation',
+    docs: [
+      'De Novo request (21 CFR 860.260)',
+      'Detailed device description and intended use',
+      'Summary of known risks and mitigations',
+      'Risk-benefit analysis',
+      'Proposed classification (Class I or II) with special controls',
+      'Non-clinical performance data',
+      'Clinical evidence (clinical study or well-documented literature)',
+      'Labeling and risk analysis (ISO 14971)'
+    ],
+    standards: ['ISO 14971', 'ISO 13485', '21 CFR 860.260', 'Applicable performance standards'],
+    caution: 'De Novo creates a NEW device classification. You must propose appropriate special controls. A successful De Novo can serve as a predicate for future 510(k)s — giving you first-mover advantage.',
+    nextSteps: [
+      'Submit a Pre-Submission to discuss your De Novo strategy with FDA',
+      'Draft proposed special controls based on your risk analysis',
+      'Prepare a comprehensive risk-benefit analysis demonstrating low-to-moderate risk'
+    ]
+  },
+  end_pma_counsel: {
+    title: 'PMA Likely Required — Seek Regulatory Counsel',
+    pathway: 'hardware', color: '#dc2626', pathwayLabel: 'Hardware — High Risk',
+    submissionType: 'PMA or Humanitarian Device Exemption (HDE)',
+    reviewTime: '180+ FDA review days',
+    prepTime: '2-5+ years',
+    docs: [
+      'Same as PMA (see Class III endpoint)',
+      'Evaluate Breakthrough Device Designation eligibility',
+      'Consider Humanitarian Device Exemption if rare condition'
+    ],
+    standards: ['ISO 14971', 'ISO 13485', '21 CFR 814'],
+    caution: 'Before committing to PMA, explore all alternatives: Breakthrough Device Designation, HDE (for conditions affecting <8,000 patients/year), or re-evaluating your intended use to fit a lower-risk pathway.',
+    nextSteps: [
+      'Engage experienced PMA regulatory counsel immediately',
+      'Evaluate Breakthrough Device Designation eligibility',
+      'Submit a Pre-Submission to discuss pathway options with FDA'
+    ]
+  },
+
+  // ===== AI/ML ENDPOINTS =====
+  end_ai_locked: {
+    title: 'AI/ML 510(k) — Locked Algorithm',
+    pathway: 'aiml', color: '#7c3aed', pathwayLabel: 'AI/ML',
+    submissionType: '510(k) with AI/ML Documentation',
+    reviewTime: '90 FDA review days',
+    prepTime: '6-14 months',
+    docs: [
+      'eSTAR submission with AI/ML-specific sections',
+      'Algorithm description (architecture, inputs, outputs)',
+      'Training dataset documentation (size, demographics, sources, labeling methodology)',
+      'Algorithm performance metrics (sensitivity, specificity, AUC, PPV, NPV)',
+      'Bias and fairness analysis across demographic subgroups',
+      'Clinical validation study results',
+      'Cybersecurity documentation',
+      'Software documentation per IEC 62304'
+    ],
+    standards: ['ISO 14971', 'IEC 62304', 'FDA GMLP Guiding Principles', 'AAMI guidance on AI/ML', 'ISO 13485'],
+    caution: 'Even "locked" algorithms face scrutiny around dataset representativeness and real-world performance degradation. Plan for robust post-market surveillance and performance monitoring.',
+    nextSteps: [
+      'Document your training and validation datasets with demographic breakdowns',
+      'Conduct a bias/fairness analysis across relevant subgroups',
+      'Prepare a clear description of your algorithm\'s clinical workflow integration'
+    ]
+  },
+  end_ai_adaptive: {
+    title: 'AI/ML 510(k) with PCCP — Adaptive Algorithm',
+    pathway: 'aiml', color: '#7c3aed', pathwayLabel: 'AI/ML — Adaptive',
+    submissionType: '510(k) + Predetermined Change Control Plan (PCCP)',
+    reviewTime: '90+ FDA review days (PCCP adds complexity)',
+    prepTime: '10-18 months',
+    docs: [
+      'All documentation for Locked Algorithm (see above)',
+      'Predetermined Change Control Plan (PCCP) describing:',
+      '  — Types of anticipated modifications',
+      '  — SaMD Pre-Specifications (SPS): description of planned changes',
+      '  — Algorithm Change Protocol (ACP): methodology for implementing/validating changes',
+      '  — Performance monitoring plan',
+      '  — Re-training data management plan',
+      'Real-world performance monitoring plan',
+      'Data management and governance framework'
+    ],
+    standards: ['ISO 14971', 'IEC 62304', 'FDA PCCP Guidance (2023)', 'FDA GMLP Guiding Principles', 'ISO 13485'],
+    caution: 'The PCCP framework is still evolving. FDA expects a robust methodology for validating changes before deployment. Your PCCP must clearly define the boundaries of changes that can be made without a new submission.',
+    nextSteps: [
+      'Draft your PCCP early — it requires extensive planning for change management',
+      'Define clear performance boundaries and re-validation triggers',
+      'Submit a Pre-Submission to discuss your PCCP approach with FDA'
+    ]
+  },
+  end_transparent_cds: {
+    title: 'Transparent CDS — Potentially Non-Device',
+    pathway: 'aiml', color: '#059669', pathwayLabel: 'AI/ML — CDS Exclusion',
+    submissionType: 'No device submission if all 520(o) criteria met',
+    reviewTime: 'N/A',
+    prepTime: 'N/A',
+    docs: [
+      'Section 520(o)(1)(E) four-criteria analysis:',
+      '  1. Not intended to acquire, process, or analyze a medical image/signal/pattern',
+      '  2. Intended for display to a healthcare professional',
+      '  3. Intended for HCP to independently review the basis for recommendations',
+      '  4. Not intended to replace HCP clinical judgment',
+      'Transparency documentation (how "basis" is disclosed)',
+      'Intended use statement emphasizing transparency',
+      'Written determination memo for regulatory files'
+    ],
+    standards: ['Section 520(o) of FD&C Act', 'FDA CDS Guidance (2022)'],
+    caution: 'ALL FOUR criteria must be met simultaneously. If your CDS acquires/analyzes medical device data or does not enable independent review, it IS a device. This determination requires careful legal analysis.',
+    nextSteps: [
+      'Document your analysis against all four 520(o)(1)(E) criteria',
+      'Ensure your product design supports transparency (show the reasoning, not just conclusions)',
+      'Have regulatory counsel review your determination before relying on the exclusion'
+    ]
+  },
+  end_ai_autonomous: {
+    title: 'Autonomous AI — High-Scrutiny Review',
+    pathway: 'aiml', color: '#dc2626', pathwayLabel: 'AI/ML — Autonomous',
+    submissionType: 'De Novo or PMA (pathway depends on risk level)',
+    reviewTime: '150-180+ FDA review days',
+    prepTime: '12-36 months',
+    docs: [
+      'All AI/ML documentation (datasets, performance, bias analysis)',
+      'Clinical trial data demonstrating safety of autonomous operation',
+      'Human factors / usability study (IEC 62366)',
+      'Failure mode analysis for unsupervised operation',
+      'Cybersecurity documentation (critical for autonomous systems)',
+      'Post-market real-world performance monitoring plan',
+      'Breakthrough Device Designation application (recommended)'
+    ],
+    standards: ['ISO 14971', 'IEC 62304', 'IEC 62366', 'FDA GMLP', 'Good Clinical Practice', 'ISO 13485'],
+    caution: 'Autonomous AI that replaces clinician judgment faces the highest regulatory bar. FDA has cleared very few truly autonomous AI devices. Consider Breakthrough Device Designation for more FDA interaction during development.',
+    nextSteps: [
+      'Apply for Breakthrough Device Designation immediately (if eligible)',
+      'Plan a robust clinical validation study with FDA input via Pre-Submission',
+      'Develop comprehensive failure mode analysis for unsupervised AI operation'
+    ]
+  },
+  end_ai_drives: {
+    title: 'AI Predictive Analytics — High-Scrutiny 510(k)',
+    pathway: 'aiml', color: '#7c3aed', pathwayLabel: 'AI/ML — Predictive',
+    submissionType: '510(k) or De Novo with extensive clinical evidence',
+    reviewTime: '90-150 FDA review days',
+    prepTime: '10-24 months',
+    docs: [
+      'AI/ML algorithm documentation (architecture, training, validation)',
+      'Clinical performance study (prospective or well-designed retrospective)',
+      'Bias and fairness analysis',
+      'Clinical workflow integration analysis',
+      'Human factors study (IEC 62366)',
+      'Cybersecurity documentation',
+      'Post-market surveillance plan'
+    ],
+    standards: ['ISO 14971', 'IEC 62304', 'IEC 62366', 'FDA GMLP', 'ISO 13485'],
+    caution: 'AI that drives clinical management without clinician override is held to a higher standard. Consider whether Breakthrough Device Designation is appropriate.',
+    nextSteps: [
+      'Design a clinical study that demonstrates safe autonomous operation',
+      'Consider Breakthrough Device Designation for enhanced FDA engagement',
+      'Document clinical workflow to clearly show how AI outputs are used in care'
+    ]
+  },
+  end_ai_informs: {
+    title: 'AI Predictive Analytics — 510(k) with Performance Data',
+    pathway: 'aiml', color: '#7c3aed', pathwayLabel: 'AI/ML — Predictive',
+    submissionType: '510(k) with AI/ML performance data',
+    reviewTime: '90 FDA review days',
+    prepTime: '6-12 months',
+    docs: [
+      'eSTAR submission with AI/ML sections',
+      'Algorithm description and performance metrics',
+      'Training and validation dataset documentation',
+      'Clinical performance evidence (may accept literature + bench)',
+      'Intended clinical workflow description',
+      'Cybersecurity documentation',
+      'Software lifecycle documentation (IEC 62304)'
+    ],
+    standards: ['ISO 14971', 'IEC 62304', 'FDA GMLP', 'ISO 13485'],
+    caution: 'Even "informational" AI must demonstrate clinical validity. Ensure your intended use clearly states the AI is intended to inform, not replace, clinician judgment.',
+    nextSteps: [
+      'Clearly define your intended use to emphasize clinician-in-the-loop',
+      'Prepare training dataset documentation with demographic breakdown',
+      'Consider a Pre-Submission to align on clinical evidence expectations'
+    ]
+  },
+
+  // ===== SaMD ENDPOINTS =====
+  end_samd_i: {
+    title: 'SaMD Category I — Low Risk',
+    pathway: 'samd', color: '#059669', pathwayLabel: 'SaMD — Cat. I',
+    submissionType: 'May be 510(k) exempt or basic 510(k)',
+    reviewTime: '0-90 days (depending on exemption)',
+    prepTime: '3-6 months',
+    docs: [
+      'Software description document',
+      'Intended use and indications for use',
+      'Software lifecycle documentation (IEC 62304 — Class A minimum)',
+      'Risk analysis (ISO 14971)',
+      'Usability assessment',
+      'Labeling'
+    ],
+    standards: ['IEC 62304', 'ISO 14971', 'IEC 62366', 'IMDRF SaMD Framework'],
+    caution: 'Category I SaMD may still need to register and list with FDA. Verify your specific product code\'s regulatory requirements.',
+    nextSteps: [
+      'Verify 510(k) exemption status for your product code',
+      'Implement basic IEC 62304 lifecycle documentation',
+      'Register your establishment and list your device with FDA'
+    ],
+    askAI: true
+  },
+  end_samd_ii: {
+    title: 'SaMD Category II — 510(k) Required',
+    pathway: 'samd', color: '#059669', pathwayLabel: 'SaMD — Cat. II',
+    submissionType: '510(k) with analytical and clinical performance evidence',
+    reviewTime: '90 FDA review days',
+    prepTime: '6-12 months',
+    docs: [
+      'eSTAR submission template',
+      'Software description and intended use',
+      'Analytical validation (accuracy, precision, reproducibility)',
+      'Clinical performance evidence (clinical study or literature)',
+      'IEC 62304 software lifecycle documentation (Class B minimum)',
+      'Risk analysis (ISO 14971)',
+      'Usability engineering file (IEC 62366)',
+      'Cybersecurity documentation'
+    ],
+    standards: ['IEC 62304', 'ISO 14971', 'IEC 62366', 'IMDRF SaMD Framework', 'ISO 13485'],
+    caution: 'Category II SaMD requires both analytical AND clinical performance evidence. The depth of clinical evidence depends on the specific intended use and healthcare situation.',
+    nextSteps: [
+      'Design analytical validation studies for your SaMD\'s output accuracy',
+      'Identify clinical evidence strategy (new study vs. literature-based)',
+      'Submit a Pre-Submission to discuss clinical evidence expectations'
+    ],
+    askAI: true
+  },
+  end_samd_iii: {
+    title: 'SaMD Category III — 510(k) with Clinical Validation',
+    pathway: 'samd', color: '#059669', pathwayLabel: 'SaMD — Cat. III',
+    submissionType: '510(k) with clinical validation study',
+    reviewTime: '90+ FDA review days',
+    prepTime: '10-18 months',
+    docs: [
+      'eSTAR submission template',
+      'Software description and intended use',
+      'Analytical validation',
+      'Prospective clinical validation study',
+      'IEC 62304 software lifecycle documentation (Class B or C)',
+      'Comprehensive risk analysis (ISO 14971)',
+      'Usability engineering file (IEC 62366)',
+      'Cybersecurity documentation',
+      'Post-market surveillance plan'
+    ],
+    standards: ['IEC 62304', 'ISO 14971', 'IEC 62366', 'IMDRF SaMD Framework', 'ISO 13485', 'Good Clinical Practice'],
+    caution: 'Category III requires rigorous clinical validation. A prospective study is typically expected. Plan for significant investment in clinical evidence generation.',
+    nextSteps: [
+      'Engage FDA early via Pre-Submission to discuss clinical study requirements',
+      'Design a prospective clinical validation study with appropriate endpoints',
+      'Establish IEC 62304 Class B/C documentation from the start of development'
+    ],
+    askAI: true
+  },
+  end_samd_iv: {
+    title: 'SaMD Category IV — Likely PMA Required',
+    pathway: 'samd', color: '#dc2626', pathwayLabel: 'SaMD — Cat. IV',
+    submissionType: 'PMA (Premarket Approval) likely required',
+    reviewTime: '180+ FDA review days',
+    prepTime: '2-4 years',
+    docs: [
+      'Full PMA application',
+      'Pivotal clinical trial data',
+      'Comprehensive analytical and clinical validation',
+      'Complete IEC 62304 Class C documentation',
+      'Comprehensive risk analysis (ISO 14971)',
+      'Human factors validation (IEC 62366)',
+      'Cybersecurity documentation',
+      'Post-market surveillance and REMS (if applicable)'
+    ],
+    standards: ['IEC 62304', 'ISO 14971', 'IEC 62366', 'IMDRF SaMD Framework', 'ISO 13485', 'GCP', '21 CFR 814'],
+    caution: 'Category IV SaMD (Critical + Treat/Diagnose) faces the highest regulatory bar. This is rare for pure software — consider whether your intended use can be refined to lower the risk category.',
+    nextSteps: [
+      'Evaluate whether Breakthrough Device Designation is appropriate',
+      'Engage FDA immediately via Pre-Submission before significant investment',
+      'Consider whether intended use can be refined to reduce IMDRF category'
+    ],
+    askAI: true
+  },
+
+  // ===== SiMD ENDPOINTS =====
+  end_simd_cyber: {
+    title: 'SiMD 510(k) with Cybersecurity',
+    pathway: 'simd', color: '#ea580c', pathwayLabel: 'SiMD',
+    submissionType: '510(k) with Cybersecurity Documentation',
+    reviewTime: '90 FDA review days',
+    prepTime: '6-14 months',
+    docs: [
+      'eSTAR submission template',
+      'Hardware device 510(k) documentation',
+      'Software lifecycle documentation (IEC 62304)',
+      'Cybersecurity documentation per FDA 2023 guidance:',
+      '  — Threat model',
+      '  — Security architecture',
+      '  — SBOM (Software Bill of Materials)',
+      '  — Vulnerability assessment',
+      '  — Patch/update management plan',
+      'SOUP evaluation (if applicable)',
+      'Risk analysis (ISO 14971)',
+      'Interoperability assessment'
+    ],
+    standards: ['IEC 62304', 'ISO 14971', 'IEC 62443', 'AAMI TIR57', 'FDA Cybersecurity Guidance (2023)', 'ISO 13485', 'NIST Cybersecurity Framework'],
+    caution: 'FDA\'s 2023 cybersecurity guidance (Section 524B) now requires cybersecurity information in ALL premarket submissions for connected devices. Missing cybersecurity documentation is a common Refuse-to-Accept reason.',
+    nextSteps: [
+      'Begin threat modeling and SBOM generation immediately',
+      'Implement a Secure Product Development Framework (SPDF)',
+      'Plan for ongoing vulnerability monitoring and coordinated disclosure'
+    ]
+  },
+  end_simd_standard: {
+    title: 'SiMD 510(k) — Standard',
+    pathway: 'simd', color: '#ea580c', pathwayLabel: 'SiMD',
+    submissionType: '510(k) with Software Documentation',
+    reviewTime: '90 FDA review days',
+    prepTime: '5-10 months',
+    docs: [
+      'eSTAR submission template',
+      'Hardware device 510(k) documentation',
+      'Software lifecycle documentation (IEC 62304)',
+      'Software requirements specification',
+      'Software architecture document',
+      'Verification and validation evidence',
+      'SOUP evaluation (if applicable)',
+      'Risk analysis (ISO 14971)',
+      'Traceability matrix (requirements → tests)'
+    ],
+    standards: ['IEC 62304', 'ISO 14971', 'ISO 13485', 'FDA Software Guidance'],
+    caution: 'Even standalone SiMD devices should consider future connectivity. If there is any possibility of network connectivity in future versions, begin cybersecurity planning now.',
+    nextSteps: [
+      'Establish IEC 62304 software lifecycle documentation from project start',
+      'Create a traceability matrix linking requirements to verification tests',
+      'Evaluate SOUP components and document risk assessment for each'
+    ]
+  }
+};
+
+// ========== APP STATE ==========
+let state = {
+  currentNode: 'start',
+  history: [], // { nodeId, answer, answerLabel }
+  pathway: null,
+  darkMode: false,
+  soupFlag: false,
+  safetyClass: null
+};
+
+// ========== UTILITY FUNCTIONS ==========
+function getPathwayInfo(pw) {
+  const map = {
+    hardware: { label: 'Hardware', color: 'var(--hw-color)', bg: '#eff6ff', icon: 'cpu' },
+    aiml: { label: 'AI/ML', color: 'var(--aiml-color)', bg: '#f5f3ff', icon: 'brain' },
+    samd: { label: 'SaMD', color: 'var(--samd-color)', bg: '#ecfdf5', icon: 'monitor-smartphone' },
+    simd: { label: 'SiMD', color: 'var(--simd-color)', bg: '#fff7ed', icon: 'hard-drive' }
+  };
+  return map[pw] || { label: 'Assessment', color: '#64748b', bg: '#f1f5f9', icon: 'clipboard-list' };
+}
+
+function calcProgress() {
+  const node = NODES[state.currentNode];
+  if (node) return node.progress || 0;
+  return 100; // endpoint
+}
+
+function renderGlossaryBtn(term) {
+  return `<button class="info-btn glossary-trigger" data-term="${term}" title="What is ${term}?">ⓘ</button>`;
+}
+
+function highlightTerms(text) {
+  const terms = Object.keys(GLOSSARY).sort((a, b) => b.length - a.length);
+  let result = text;
+  terms.forEach(term => {
+    const escaped = term.replace(/[.*+?^${}()|[\]\\\/]/g, '\\$&');
+    const regex = new RegExp(`\\b${escaped}\\b`, 'g');
+    result = result.replace(regex, (match) => {
+      return `<span class="underline decoration-dotted cursor-help glossary-trigger" data-term="${term}" style="text-decoration-color:var(--teal);text-underline-offset:3px;">${match}</span>`;
+    });
+  });
+  return result;
+}
+
+function truncateQ(q) {
+  return q.length > 60 ? q.substring(0, 57) + '…' : q;
+}
+
+// ========== RENDER FUNCTIONS ==========
+function renderBreadcrumbs() {
+  const container = document.getElementById('breadcrumb-trail-v8w0');
+  const mobileContainer = document.getElementById('mobile-progress-content-g2h4');
+  if (state.history.length === 0) {
+    const empty = `<div class="text-sm italic" style="color:var(--text-muted);">No decisions yet. Begin below.</div>`;
+    container.innerHTML = empty;
+    if (mobileContainer) mobileContainer.innerHTML = empty;
+    return;
+  }
+  let html = '';
+  state.history.forEach((h, i) => {
+    const node = NODES[h.nodeId];
+    html += `<div class="flex items-start gap-2 py-2 px-3 rounded-lg text-sm" style="background:${i === state.history.length - 1 ? 'var(--teal)' + '15' : 'transparent'};">
+      <div class="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold mt-0.5" style="background:var(--teal);color:#fff;">${i + 1}</div>
+      <div class="min-w-0">
+        <div class="font-medium truncate" style="color:var(--text);">${truncateQ(node ? node.question : h.nodeId)}</div>
+        <div class="text-xs font-semibold mt-0.5" style="color:var(--teal);">→ ${h.answerLabel}</div>
+      </div>
+    </div>`;
+  });
+  container.innerHTML = html;
+  if (mobileContainer) mobileContainer.innerHTML = html;
+}
+
+function renderPathwayIndicator() {
+  const indicator = document.getElementById('pathway-indicator-p1q3');
+  if (!indicator) return;
+  const badges = indicator.querySelectorAll('.pathway-badge');
+  badges.forEach(b => {
+    b.style.opacity = '0.3';
+    b.classList.remove('pathway-active');
+  });
+  if (state.pathway) {
+    const idx = { hardware: 0, aiml: 1, samd: 2, simd: 3 }[state.pathway];
+    if (idx !== undefined && badges[idx]) {
+      badges[idx].style.opacity = '1';
+      badges[idx].classList.add('pathway-active');
+    }
+  }
+}
+
+function renderProgress() {
+  const pct = calcProgress();
+  document.getElementById('progress-pct-r4s6').textContent = pct + '%';
+  document.getElementById('progress-bar-t5u7').style.width = pct + '%';
+  document.getElementById('progress-pct-mobile-b7c9').textContent = pct + '%';
+  document.getElementById('progress-bar-mobile-d0e2').style.width = pct + '%';
+}
+
+function renderQuestion() {
+  const container = document.getElementById('question-card-container-f3g5');
+  const node = NODES[state.currentNode];
+
+  if (!node) {
+    // Endpoint
+    renderEndpoint();
+    return;
+  }
+
+  if (node.pathway) state.pathway = node.pathway;
+
+  const pwInfo = state.pathway ? getPathwayInfo(state.pathway) : null;
+  const qNum = state.history.length + 1;
+
+  let html = `<div class="fade-enter rounded-xl overflow-hidden card-shadow-lg" style="background:var(--bg);border:1px solid var(--border);">`;
+
+  // Header
+  html += `<div class="px-5 py-4 flex items-center gap-3 flex-wrap" style="background:var(--navy);">
+    <span class="flex items-center justify-center w-8 h-8 rounded-full text-sm font-bold" style="background:var(--teal);color:#fff;">Q${qNum}</span>`;
+  if (pwInfo) {
+    html += `<span class="pathway-badge" style="background:${pwInfo.bg};color:${pwInfo.color};"><i data-lucide="${pwInfo.icon}" class="w-3 h-3"></i> ${pwInfo.label} Pathway</span>`;
+  }
+  html += `</div>`;
+
+  // Question body
+  html += `<div class="p-5 md:p-7">`;
+  html += `<h2 class="text-lg md:text-xl font-bold mb-3" style="color:var(--navy);">${highlightTerms(node.question)}</h2>`;
+  html += `<p class="text-sm leading-relaxed mb-5" style="color:var(--text-muted);">${highlightTerms(node.helper)}</p>`;
+
+  // Why toggle
+  html += `<div class="mb-6">
+    <button class="why-toggle flex items-center gap-2 text-sm font-semibold transition" style="color:var(--teal);">
+      <i data-lucide="help-circle" class="w-4 h-4"></i> Why does this matter?
+      <i data-lucide="chevron-down" class="w-4 h-4 why-chevron transition"></i>
+    </button>
+    <div class="why-section mt-2">
+      <div class="p-4 rounded-lg text-sm leading-relaxed" style="background:var(--teal);background:${state.darkMode ? 'rgba(0,180,216,0.1)' : '#e0f7fa'};color:var(--text);">
+        ${highlightTerms(node.why)}
+      </div>
+    </div>
+  </div>`;
+
+  // Answer buttons
+  html += `<div class="flex flex-col gap-3">`;
+  node.options.forEach((opt, i) => {
+    html += `<button class="btn-pill answer-btn text-left justify-start" data-answer-idx="${i}">${opt.label}</button>`;
+  });
+  html += `</div>`;
+
+  // Back button
+  if (state.history.length > 0) {
+    html += `<div class="mt-6 pt-4" style="border-top:1px solid var(--border);">
+      <button class="back-btn flex items-center gap-2 text-sm font-medium transition" style="color:var(--text-muted);">
+        <i data-lucide="arrow-left" class="w-4 h-4"></i> Go Back
+      </button>
+    </div>`;
+  }
+
+  html += `</div></div>`;
+  container.innerHTML = html;
+
+  // Re-init icons
+  if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
+    lucide.createIcons();
+  }
+
+  // Animate in
+  requestAnimationFrame(() => {
+    const card = container.querySelector('.fade-enter');
+    if (card) {
+      card.classList.remove('fade-enter');
+      card.classList.add('fade-active');
+    }
+  });
+
+  // Bind answer buttons
+  container.querySelectorAll('.answer-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const idx = parseInt(this.dataset.answerIdx);
+      handleAnswer(idx);
+    });
+  });
+
+  // Bind why toggle
+  const whyToggle = container.querySelector('.why-toggle');
+  if (whyToggle) {
+    whyToggle.addEventListener('click', function() {
+      const section = container.querySelector('.why-section');
+      const chevron = container.querySelector('.why-chevron');
+      section.classList.toggle('open');
+      if (chevron) chevron.style.transform = section.classList.contains('open') ? 'rotate(180deg)' : '';
+    });
+  }
+
+  // Bind back button
+  const backBtn = container.querySelector('.back-btn');
+  if (backBtn) {
+    backBtn.addEventListener('click', goBack);
+  }
+
+  // Bind glossary triggers
+  bindGlossaryTriggers(container);
+
+  renderBreadcrumbs();
+  renderPathwayIndicator();
+  renderProgress();
+}
+
+function renderEndpoint() {
+  const container = document.getElementById('question-card-container-f3g5');
+  const ep = ENDPOINTS[state.currentNode];
+  if (!ep) {
+    container.innerHTML = `<div class="p-8 text-center"><p>Unknown endpoint. Please restart.</p></div>`;
+    return;
+  }
+
+  const pwInfo = ep.pathway ? getPathwayInfo(ep.pathway) : { label: 'Assessment', color: '#64748b', bg: '#f1f5f9', icon: 'clipboard-list' };
+
+  // Set progress to 100
+  document.getElementById('progress-pct-r4s6').textContent = '100%';
+  document.getElementById('progress-bar-t5u7').style.width = '100%';
+  document.getElementById('progress-pct-mobile-b7c9').textContent = '100%';
+  document.getElementById('progress-bar-mobile-d0e2').style.width = '100%';
+
+  let borderColor = ep.color;
+
+  let html = `<div class="celebrate rounded-xl overflow-hidden card-shadow-lg" style="background:var(--bg);border:1px solid var(--border);border-left:5px solid ${borderColor};">`;
+
+  // Header
+  html += `<div class="px-5 py-5 md:px-7" style="background:linear-gradient(135deg, ${borderColor}10, ${borderColor}05);">
+    <div class="flex items-center gap-3 flex-wrap mb-2">
+      <span class="pathway-badge" style="background:${pwInfo.bg};color:${pwInfo.color};"><i data-lucide="${pwInfo.icon}" class="w-3 h-3"></i> ${ep.pathwayLabel}</span>
+      <span class="flex items-center gap-1 text-xs font-semibold px-3 py-1 rounded-full" style="background:#dcfce7;color:#166534;">
+        <i data-lucide="check-circle" class="w-3 h-3"></i> Pathway Determined
+      </span>
+    </div>
+    <h2 class="text-xl md:text-2xl font-extrabold" style="color:var(--navy);">${ep.title}</h2>
+  </div>`;
+
+  // Body
+  html += `<div class="p-5 md:p-7 space-y-5">`;
+
+  // Key facts grid
+  html += `<div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+    <div class="rounded-lg p-4" style="background:var(--card-bg);">
+      <div class="text-xs font-semibold uppercase tracking-wider mb-1" style="color:var(--text-muted);">Submission Type</div>
+      <div class="text-sm font-bold" style="color:var(--navy);">${ep.submissionType}</div>
+    </div>
+    <div class="rounded-lg p-4" style="background:var(--card-bg);">
+      <div class="text-xs font-semibold uppercase tracking-wider mb-1" style="color:var(--text-muted);">Est. FDA Review</div>
+      <div class="text-sm font-bold" style="color:var(--navy);">${ep.reviewTime}</div>
+    </div>
+    <div class="rounded-lg p-4" style="background:var(--card-bg);">
+      <div class="text-xs font-semibold uppercase tracking-wider mb-1" style="color:var(--text-muted);">Est. Prep Time</div>
+      <div class="text-sm font-bold" style="color:var(--navy);">${ep.prepTime}</div>
+    </div>
+  </div>`;
+
+  // Documentation
+  html += `<div>
+    <h3 class="text-sm font-bold uppercase tracking-wider mb-3 flex items-center gap-2" style="color:var(--navy);">
+      <i data-lucide="file-text" class="w-4 h-4"></i> Key Required Documentation
+    </h3>
+    <ul class="space-y-1.5 text-sm" style="color:var(--text);">`;
+  ep.docs.forEach(doc => {
+    const indent = doc.startsWith('  —') ? 'ml-5' : '';
+    const bullet = doc.startsWith('  —') ? '' : '•';
+    html += `<li class="${indent}">${bullet} ${highlightTerms(doc.replace(/^  — /, ''))}</li>`;
+  });
+  html += `</ul></div>`;
+
+  // Standards
+  html += `<div>
+    <h3 class="text-sm font-bold uppercase tracking-wider mb-3 flex items-center gap-2" style="color:var(--navy);">
+      <i data-lucide="award" class="w-4 h-4"></i> Applicable Standards
+    </h3>
+    <div class="flex flex-wrap gap-2">`;
+  ep.standards.forEach(s => {
+    html += `<span class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium" style="background:var(--card-bg);color:var(--text);border:1px solid var(--border);">${highlightTerms(s)}</span>`;
+  });
+  html += `</div></div>`;
+
+  // SOUP/Safety class flags for SiMD
+  let extraFlags = '';
+  if (state.soupFlag) {
+    extraFlags += `<div class="flex items-start gap-3 p-4 rounded-lg" style="background:#fff7ed;border:1px solid #fed7aa;">
+      <i data-lucide="alert-triangle" class="w-5 h-5 flex-shrink-0 mt-0.5" style="color:var(--gold);"></i>
+      <div class="text-sm"><strong class="font-semibold" style="color:#92400e;">SOUP Evaluation Required:</strong> <span style="color:#78350f;">Your device uses Software of Unknown Provenance. Document all SOUP items with version, known anomalies, functional/performance requirements, and risk assessment per IEC 62304 §8.</span></div>
+    </div>`;
+  }
+  if (state.safetyClass) {
+    const scColors = { A: '#dcfce7', B: '#fef9c3', C: '#fee2e2' };
+    const scText = { A: 'Basic documentation required', B: 'Moderate documentation and testing required', C: 'Full formal verification and complete traceability required' };
+    extraFlags += `<div class="flex items-start gap-3 p-4 rounded-lg" style="background:${scColors[state.safetyClass]};border:1px solid var(--border);">
+      <i data-lucide="info" class="w-5 h-5 flex-shrink-0 mt-0.5" style="color:var(--navy);"></i>
+      <div class="text-sm"><strong class="font-semibold" style="color:var(--navy);">IEC 62304 Safety Class ${state.safetyClass}:</strong> <span style="color:var(--text);">${scText[state.safetyClass]}</span></div>
+    </div>`;
+  }
+  if (extraFlags) html += extraFlags;
+
+  // Caution box
+  html += `<div class="flex items-start gap-3 p-4 rounded-lg" style="background:#fffbeb;border:1px solid #fde68a;">
+    <i data-lucide="alert-triangle" class="w-5 h-5 flex-shrink-0 mt-0.5" style="color:var(--gold);"></i>
+    <div class="text-sm" style="color:#78350f;"><strong class="font-semibold">Caution:</strong> ${ep.caution}</div>
+  </div>`;
+
+  // Next steps box
+  html += `<div class="flex items-start gap-3 p-4 rounded-lg" style="background:#ecfdf5;border:1px solid #a7f3d0;">
+    <i data-lucide="rocket" class="w-5 h-5 flex-shrink-0 mt-0.5" style="color:#059669;"></i>
+    <div>
+      <div class="text-sm font-bold mb-2" style="color:#065f46;">Recommended Next Steps</div>
+      <ol class="text-sm space-y-1.5 list-decimal list-inside" style="color:#064e3b;">`;
+  ep.nextSteps.forEach(step => {
+    html += `<li>${step}</li>`;
+  });
+  html += `</ol></div></div>`;
+
+  // Action buttons
+  html += `<div class="flex flex-wrap gap-3 pt-2">
+    <button class="btn-pill checklist-btn text-sm" style="background:var(--teal);border-color:var(--teal);color:#fff;">
+      <i data-lucide="clipboard-check" class="w-4 h-4"></i> Download Checklist
+    </button>
+    <button class="btn-pill print-summary-btn text-sm">
+      <i data-lucide="printer" class="w-4 h-4"></i> Print Summary
+    </button>
+    <button class="btn-pill back-btn text-sm">
+      <i data-lucide="arrow-left" class="w-4 h-4"></i> Go Back
+    </button>
+    <button class="btn-pill restart-endpoint-btn text-sm" style="background:var(--navy);border-color:var(--navy);color:#fff;">
+      <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Start New Assessment
+    </button>
+  </div>`;
+
+  html += `</div></div>`;
+  container.innerHTML = html;
+
+  if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
+    lucide.createIcons();
+  }
+
+  // Bind buttons
+  const checklistBtn = container.querySelector('.checklist-btn');
+  if (checklistBtn) checklistBtn.addEventListener('click', () => showChecklist(ep));
+
+  const printBtn = container.querySelector('.print-summary-btn');
+  if (printBtn) printBtn.addEventListener('click', () => window.print());
+
+  const backBtn = container.querySelector('.back-btn');
+  if (backBtn) backBtn.addEventListener('click', goBack);
+
+  const restartBtn = container.querySelector('.restart-endpoint-btn');
+  if (restartBtn) restartBtn.addEventListener('click', restart);
+
+  bindGlossaryTriggers(container);
+  renderBreadcrumbs();
+  renderPathwayIndicator();
+}
+
+function handleAnswer(idx) {
+  const node = NODES[state.currentNode];
+  if (!node) return;
+  const opt = node.options[idx];
+
+  // Capture flags
+  if (opt._safetyClass) state.safetyClass = opt._safetyClass;
+  if (opt._soupFlag !== undefined) state.soupFlag = opt._soupFlag;
+
+  state.history.push({
+    nodeId: state.currentNode,
+    answer: idx,
+    answerLabel: opt.label
+  });
+
+  state.currentNode = opt.next;
+
+  // Update pathway from next node
+  const nextNode = NODES[state.currentNode];
+  if (nextNode && nextNode.pathway) state.pathway = nextNode.pathway;
+  // Or from endpoint
+  const ep = ENDPOINTS[state.currentNode];
+  if (ep && ep.pathway) state.pathway = ep.pathway;
+
+  saveToLocalStorage();
+  renderQuestion();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function goBack() {
+  if (state.history.length === 0) return;
+  const last = state.history.pop();
+  state.currentNode = last.nodeId;
+
+  // Recalculate pathway
+  state.pathway = null;
+  state.soupFlag = false;
+  state.safetyClass = null;
+  for (const h of state.history) {
+    const n = NODES[h.nodeId];
+    if (n && n.pathway) state.pathway = n.pathway;
+    const opt = n.options[h.answer];
+    if (opt._safetyClass) state.safetyClass = opt._safetyClass;
+    if (opt._soupFlag !== undefined) state.soupFlag = opt._soupFlag;
+  }
+  const currentNodeData = NODES[state.currentNode];
+  if (currentNodeData && currentNodeData.pathway) state.pathway = currentNodeData.pathway;
+
+  saveToLocalStorage();
+  renderQuestion();
+}
+
+function restart() {
+  state = { currentNode: 'start', history: [], pathway: null, darkMode: state.darkMode, soupFlag: false, safetyClass: null };
+  saveToLocalStorage();
+  renderQuestion();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function showChecklist(ep) {
+  const modal = document.getElementById('checklist-modal-t4u6');
+  const content = document.getElementById('checklist-content-a3b5');
+  let html = `<h3 class="font-bold text-base mb-3" style="color:var(--navy);">${ep.title} — Submission Checklist</h3>`;
+  html += `<div class="text-xs mb-4" style="color:var(--text-muted);">${ep.submissionType} &middot; Est. ${ep.reviewTime}</div>`;
+  html += `<div class="space-y-2">`;
+  ep.docs.forEach((doc, i) => {
+    const isSubitem = doc.startsWith('  —');
+    html += `<label class="flex items-start gap-3 p-2 rounded-lg hover:bg-gray-50 cursor-pointer ${isSubitem ? 'ml-6' : ''}">
+      <input type="checkbox" class="mt-1 w-4 h-4 rounded" style="accent-color:var(--teal);" />
+      <span class="text-sm" style="color:var(--text);">${doc.replace(/^  — /, '')}</span>
+    </label>`;
+  });
+  html += `</div>`;
+  if (ep.standards.length) {
+    html += `<div class="mt-4 pt-3" style="border-top:1px solid var(--border);">
+      <div class="text-xs font-bold uppercase tracking-wider mb-2" style="color:var(--text-muted);">Standards to Reference</div>
+      <div class="flex flex-wrap gap-1.5">`;
+    ep.standards.forEach(s => {
+      html += `<span class="text-xs px-2 py-1 rounded" style="background:var(--card-bg);color:var(--text);">${s}</span>`;
+    });
+    html += `</div></div>`;
+  }
+  content.innerHTML = html;
+  modal.classList.remove('hidden');
+}
+
+function showGlossary(term) {
+  const def = GLOSSARY[term];
+  if (!def) return;
+  document.getElementById('glossary-term-p8q0').textContent = term;
+  document.getElementById('glossary-def-r1s3').textContent = def;
+  document.getElementById('glossary-modal-j9k1').classList.remove('hidden');
+}
+
+function bindGlossaryTriggers(container) {
+  container.querySelectorAll('.glossary-trigger').forEach(el => {
+    el.addEventListener('click', function(e) {
+      e.stopPropagation();
+      showGlossary(this.dataset.term);
+    });
+  });
+}
+
+// ========== LOCAL STORAGE ==========
+function saveToLocalStorage() {
+  try {
+    localStorage.setItem('cbc_state', JSON.stringify({
+      currentNode: state.currentNode,
+      history: state.history,
+      pathway: state.pathway,
+      darkMode: state.darkMode,
+      soupFlag: state.soupFlag,
+      safetyClass: state.safetyClass
+    }));
+  } catch(e) {}
+}
+
+function loadFromLocalStorage() {
+  try {
+    const saved = localStorage.getItem('cbc_state');
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      state = { ...state, ...parsed };
+      return true;
+    }
+  } catch(e) {}
+  return false;
+}
+
+// ========== DARK MODE ==========
+function toggleDarkMode() {
+  state.darkMode = !state.darkMode;
+  document.documentElement.classList.toggle('dark-mode', state.darkMode);
+  document.body.classList.toggle('dark-mode', state.darkMode);
+  const moonIcon = document.getElementById('dark-icon-moon');
+  const sunIcon = document.getElementById('dark-icon-sun');
+  if (state.darkMode) {
+    moonIcon.classList.add('hidden');
+    sunIcon.classList.remove('hidden');
+  } else {
+    moonIcon.classList.remove('hidden');
+    sunIcon.classList.add('hidden');
+  }
+  saveToLocalStorage();
+  // Re-render to pick up dark-mode-aware colors
+  renderQuestion();
+}
+
+function showToast(msg) {
+  const toast = document.getElementById('save-toast-e9f1');
+  document.getElementById('save-toast-msg-g2h4').textContent = msg;
+  toast.classList.remove('hidden');
+  setTimeout(() => toast.classList.add('hidden'), 3000);
+}
+
+// ========== TABS ==========
+function switchTab(tab) {
+  const treeTab = document.getElementById('tree-tab-content-k5l7');
+  const qrTab = document.getElementById('quickref-tab-content-h6i8');
+  const btns = document.querySelectorAll('.tab-btn');
+
+  btns.forEach(b => {
+    const isActive = b.dataset.tab === tab;
+    b.style.borderColor = isActive ? 'var(--teal)' : 'transparent';
+    b.style.color = isActive ? 'var(--teal)' : 'var(--text-muted)';
+  });
+
+  if (tab === 'tree') {
+    treeTab.classList.remove('hidden');
+    qrTab.classList.add('hidden');
+  } else {
+    treeTab.classList.add('hidden');
+    qrTab.classList.remove('hidden');
+  }
+}
+
+// ========== INIT ==========
+function init() {
+  // Guard Lucide
+  if (typeof lucide !== 'undefined' && typeof lucide.createIcons === 'function') {
+    lucide.createIcons();
+  }
+
+  // Load saved state
+  loadFromLocalStorage();
+
+  // Apply dark mode if saved
+  if (state.darkMode) {
+    document.documentElement.classList.add('dark-mode');
+    document.body.classList.add('dark-mode');
+    const moonIcon = document.getElementById('dark-icon-moon');
+    const sunIcon = document.getElementById('dark-icon-sun');
+    if (moonIcon) moonIcon.classList.add('hidden');
+    if (sunIcon) sunIcon.classList.remove('hidden');
+  }
+
+  // Render initial state
+  renderQuestion();
+
+  // Dark mode toggle
+  document.getElementById('dark-toggle-x8m1').addEventListener('click', toggleDarkMode);
+
+  // Restart button
+  document.getElementById('restart-btn-h7t4').addEventListener('click', restart);
+
+  // Save button
+  document.getElementById('save-btn-m2n9').addEventListener('click', function() {
+    saveToLocalStorage();
+    // Create hash
+    try {
+      const encoded = btoa(JSON.stringify({ c: state.currentNode, h: state.history.map(x => ({ n: x.nodeId, a: x.answer, l: x.answerLabel })), p: state.pathway }));
+      window.location.hash = encoded;
+    } catch(e) {}
+    showToast('Progress saved! URL updated with your current state.');
+  });
+
+  // Print button
+  document.getElementById('print-btn-r3q7').addEventListener('click', () => window.print());
+
+  // Tab switching
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      switchTab(this.dataset.tab);
+    });
+  });
+
+  // Mobile sidebar
+  document.getElementById('mobile-menu-btn-v5z3').addEventListener('click', function() {
+    document.getElementById('mobile-sidebar-a3b5').classList.remove('hidden');
+  });
+  document.getElementById('mobile-sidebar-close-e1f3').addEventListener('click', function() {
+    document.getElementById('mobile-sidebar-a3b5').classList.add('hidden');
+  });
+  document.getElementById('mobile-sidebar-backdrop-c7d9').addEventListener('click', function() {
+    document.getElementById('mobile-sidebar-a3b5').classList.add('hidden');
+  });
+  document.getElementById('mobile-trail-btn-z4a6').addEventListener('click', function() {
+    document.getElementById('mobile-sidebar-a3b5').classList.remove('hidden');
+  });
+
+  // Glossary modal close
+  document.getElementById('glossary-close-n5o7').addEventListener('click', function() {
+    document.getElementById('glossary-modal-j9k1').classList.add('hidden');
+  });
+  document.getElementById('glossary-backdrop-l2m4').addEventListener('click', function() {
+    document.getElementById('glossary-modal-j9k1').classList.add('hidden');
+  });
+
+  // Checklist modal close
+  document.getElementById('checklist-close-x0y2').addEventListener('click', function() {
+    document.getElementById('checklist-modal-t4u6').classList.add('hidden');
+  });
+  document.getElementById('checklist-backdrop-v7w9').addEventListener('click', function() {
+    document.getElementById('checklist-modal-t4u6').classList.add('hidden');
+  });
+  document.getElementById('checklist-print-c6d8').addEventListener('click', function() {
+    window.print();
+  });
+
+  // Load from URL hash
+  if (window.location.hash && window.location.hash.length > 1) {
+    try {
+      const decoded = JSON.parse(atob(window.location.hash.substring(1)));
+      if (decoded.c && decoded.h) {
+        state.currentNode = decoded.c;
+        state.history = decoded.h.map(x => ({ nodeId: x.n, answer: x.a, answerLabel: x.l }));
+        state.pathway = decoded.p || null;
+        renderQuestion();
       }
+    } catch(e) {}
+  }
 
-      // Place logo at a good initial random position and direction
-      function initPosition() {
-        updateLogoSize();
-        const stageRect = stage.getBoundingClientRect();
-        // Random start within safe margins
-        pos.x = Math.max(8, Math.random() * (stageRect.width - logoW - 16));
-        pos.y = Math.max(8, Math.random() * (stageRect.height - logoH - 16));
-        // Randomize initial direction slightly
-        const angle = (Math.random() * Math.PI * 2);
-        const speed = Math.sqrt(vx*vx + vy*vy);
-        vx = Math.cos(angle) * speed;
-        vy = Math.sin(angle) * speed;
-        // Apply transform immediately
-        setTransform();
-      }
+  // Bind glossary in quick-ref
+  bindGlossaryTriggers(document.getElementById('quickref-tab-content-h6i8'));
+}
 
-      function setTransform() {
-        // Use translate3d for GPU acceleration
-        logo.style.transform = `translate3d(${pos.x}px, ${pos.y}px, 0)`;
-      }
-
-      // Reflect velocity vector across normal when hitting a wall
-      function reflect(axis) {
-        if (axis === 'x') {
-          vx = -vx;
-        } else if (axis === 'y') {
-          vy = -vy;
-        }
-        // Apply tiny random variance to avoid periodic loops
-        const randFactorX = 1 + (Math.random() * varianceOnBounce * 2 - varianceOnBounce);
-        const randFactorY = 1 + (Math.random() * varianceOnBounce * 2 - varianceOnBounce);
-        vx *= randFactorX;
-        vy *= randFactorY;
-
-        // Clamp speeds to avoid extremes
-        const speed = Math.sqrt(vx*vx + vy*vy);
-        if (speed < minSpeed) {
-          const scale = minSpeed / Math.max(speed, 0.0001);
-          vx *= scale;
-          vy *= scale;
-        } else if (speed > maxSpeed) {
-          const scale = maxSpeed / speed;
-          vx *= scale;
-          vy *= scale;
-        }
-      }
-
-      // Main animation loop
-      function step(timestamp) {
-        if (!lastTime) lastTime = timestamp;
-        const dt = Math.min(40, timestamp - lastTime); // cap dt to avoid huge jumps (ms)
-        lastTime = timestamp;
-        const dtSec = dt / 1000;
-
-        // Update position
-        pos.x += vx * dtSec;
-        pos.y += vy * dtSec;
-
-        // Bounds check
-        const stageRect = stage.getBoundingClientRect();
-        const maxX = stageRect.width - logoW;
-        const maxY = stageRect.height - logoH;
-
-        let bounced = false;
-
-        if (pos.x <= 0) {
-          pos.x = 0;
-          reflect('x');
-          bounced = true;
-        } else if (pos.x >= maxX) {
-          pos.x = maxX;
-          reflect('x');
-          bounced = true;
-        }
-
-        if (pos.y <= 0) {
-          pos.y = 0;
-          reflect('y');
-          bounced = true;
-        } else if (pos.y >= maxY) {
-          pos.y = maxY;
-          reflect('y');
-          bounced = true;
-        }
-
-        // If bounce occurred, nudge position slightly inward to avoid sticking
-        if (bounced) {
-          pos.x = Math.min(Math.max(2, pos.x), Math.max(2, maxX - 2));
-          pos.y = Math.min(Math.max(2, pos.y), Math.max(2, maxY - 2));
-        }
-
-        setTransform();
-        // Continue loop
-        requestAnimationFrame(step);
-      }
-
-      // Handle window resize: keep logo inside viewport
-      function onResize() {
-        updateLogoSize();
-        const stageRect = stage.getBoundingClientRect();
-        const maxX = Math.max(0, stageRect.width - logoW);
-        const maxY = Math.max(0, stageRect.height - logoH);
-        if (pos.x > maxX) pos.x = maxX;
-        if (pos.y > maxY) pos.y = maxY;
-        setTransform();
-      }
-
-      // Prevent accidental dragging on mobile
-      function preventDefault(e) {
-        e.preventDefault();
-      }
-
-      // Initialize after image loads to get accurate dimensions
-      function startWhenReady() {
-        if (logo.complete && logo.naturalWidth !== 0) {
-          // Update width if CSS changed it
-          updateLogoSize();
-          // If CSS width differs from natural, keep CSS width as baseline
-          initPosition();
-          // Kick off animation
-          requestAnimationFrame(step);
-        } else {
-          // Wait for load
-          logo.addEventListener('load', function () {
-            updateLogoSize();
-            initPosition();
-            requestAnimationFrame(step);
-          }, { once: true });
-          // Fallback timeout in case load event doesn't fire
-          setTimeout(function () {
-            updateLogoSize();
-            initPosition();
-            requestAnimationFrame(step);
-          }, 600);
-        }
-      }
-
-      // Respect reduced-motion preference: if user prefers reduced motion, do a slow fade instead
-      const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      if (reduceMotion) {
-        // Gentle slow pan using CSS transition as fallback
-        logo.style.transition = 'transform 8s linear';
-        // Place center
-        logo.style.left = '50%';
-        logo.style.top = '50%';
-        logo.style.transform = 'translate3d(-50%,-50%,0)';
-      } else {
-        // Normal animated behavior
-        startWhenReady();
-        // Event listeners
-        window.addEventListener('resize', onResize, { passive: true });
-        // Prevent touch dragging
-        stage.addEventListener('touchstart', preventDefault, { passive: false });
-        stage.addEventListener('touchmove', preventDefault, { passive: false });
-      }
-
-      // Accessibility: if user presses Escape, pause movement (useful for screenshots)
-      let paused = false;
-      function togglePause() {
-        paused = !paused;
-        if (paused) {
-          // freeze by zeroing velocities but keep stored values
-          logo.dataset._vx = vx;
-          logo.dataset._vy = vy;
-          vx = 0; vy = 0;
-        } else {
-          if (logo.dataset._vx) vx = parseFloat(logo.dataset._vx);
-          if (logo.dataset._vy) vy = parseFloat(logo.dataset._vy);
-          delete logo.dataset._vx;
-          delete logo.dataset._vy;
-        }
-      }
-      window.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') togglePause();
-      });
-
-      // Ensure logo is visible on high-DPI screens and initial layout
-      document.addEventListener('DOMContentLoaded', () => {
-        // Slight delay to allow fonts to load and layout to stabilize
-        setTimeout(() => {
-          updateLogoSize();
-          onResize();
-        }, 80);
-      });
-    })();
-  </script>
+// Run init
+init();
+</script>
 </body>
 </html>
